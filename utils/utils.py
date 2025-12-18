@@ -1,7 +1,7 @@
 import pandas as pd
 from pathlib import Path
 
-def loading_data(data_folder_name: str = 'data', filename: str = 'ensemble_2022-07-01_2025-10-01') -> pd.DataFrame:
+def load_data(data_folder_name: str = 'data', filename: str = 'ensemble_2022-07-01_2025-10-01') -> pd.DataFrame:
     # 1. Route configuration (we use pathlib for better path handling)
     # If you're in a .py script use: Path(__file__).parent
     # If you're in a Notebook use: Path.cwd()
