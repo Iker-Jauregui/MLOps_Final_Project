@@ -1,4 +1,4 @@
-[![CICD](https://github.com/Iker-Jauregui/MLOps-Lab2/actions/workflows/CICD.yml/badge.svg)](https://github.com/Iker-Jauregui/MLOps-Lab2/actions/workflows/CICD.yml)
+[![CICD](https://github.com/Iker-Jauregui/MLOps_Final_Project/actions/workflows/CICD.yml/badge.svg)](https://github.com/Iker-Jauregui/MLOps_Final_Project/actions/workflows/CICD.yml)
 
-# MLOps-Lab2
-Repo for Lab2 of MLOps subject
+# MLOps_Final_Project
+Repo for Final Project of MLOps subject
