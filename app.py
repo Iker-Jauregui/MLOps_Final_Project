@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 
 # URL of the API created with FastAPI
-API_URL = "https://mlops-lab2-jauregui-latest.onrender.com"
+API_URL = "https://mlops-final-project-latest-tu7z.onrender.com"
 
 
 # Function to execute when clicking the "Predict button"
