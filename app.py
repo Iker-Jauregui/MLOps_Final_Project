@@ -92,7 +92,6 @@ iface = gr.Interface(
         [100000],
         [500000],
     ],
-    theme=gr.themes.Soft(),
     allow_flagging="never",
 )
 
