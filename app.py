@@ -32,7 +32,7 @@ def predict(quantity):
         response = requests.post(
             f"{API_URL}/predict",
             data={"quantity": str(quantity)},
-            timeout=60
+            timeout=120
         )
         response.raise_for_status()
         
@@ -47,7 +47,7 @@ def predict(quantity):
 
 **Input Quantity:** {input_quantity:,.0f} plays
 
-**Predicted Revenue:** ${predicted_revenue:,.2f}
+**Predicted Revenue:** {predicted_revenue:,.2f}€
 
 **Rate:** 2.00€ per 1,000 plays
         """
