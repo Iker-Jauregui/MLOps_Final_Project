@@ -92,7 +92,7 @@ iface = gr.Interface(
         [100000],
         [500000],
     ],
-    allow_flagging="never",
+    flagging_options=None,
 )
 
 # Launch the GUI
