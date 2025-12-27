@@ -6,7 +6,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
 from fastapi.responses import HTMLResponse
 
-from lib.regressor import predict as predict_func
+from logic.regressor import predict as predict_func
 
 # Create an instance of FastAPI
 app = FastAPI(

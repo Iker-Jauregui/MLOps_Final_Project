@@ -3,7 +3,7 @@ Unit Testing of the track revenue prediction logic
 """
 import pytest
 import numpy as np
-from lib.regressor import predict
+from logic.regressor import predict
 
 
 def test_predict_single_value():
