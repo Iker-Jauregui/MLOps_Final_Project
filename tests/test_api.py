@@ -3,7 +3,7 @@ Integration testing with the API
 """
 import pytest
 from fastapi.testclient import TestClient
-from api import app
+from api.api import app
 
 
 @pytest.fixture
