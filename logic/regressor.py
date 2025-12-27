@@ -59,4 +59,4 @@ def predict(quantity):
     if np.any(quantity_array < 0):
         raise ValueError("'quantity' must be non-negative")
 
-    return 2.0 * quantity / 1000.0
+    return 2.0 * quantity_array / 1000.0
