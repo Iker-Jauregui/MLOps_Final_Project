@@ -8,13 +8,13 @@ install:
 	uv sync
 
 test:
-	uv run python -m pytest tests/ -vv --cov=mylib --cov=api --cov=cli 
+	uv run python -m pytest tests/ -vv --cov=logic --cov=api
 
 format:	
-	uv run black mylib/*.py cli/*.py api/*.py #*.py
+	uv run black logic/*.py api/*.py #*.py
 
 lint:
-	uv run pylint --disable=R,C --ignore-patterns=test_.*?\.py mylib/*.py cli/*.py api/*.py 
+	uv run pylint --disable=R,C --ignore-patterns=test_.*?\.py logic/*.py api/*.py 
 
 refactor: format lint
 
