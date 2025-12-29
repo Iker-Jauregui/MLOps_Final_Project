@@ -1,73 +1,77 @@
 """
-Unit Testing of the application's logic
+Unit Testing of the track revenue prediction logic
 """
 import pytest
-from pathlib import Path
-from PIL import Image
-from mylib.classifier import predict, resize
+import numpy as np
+from logic.regressor import predict
 
 
-@pytest.fixture
-def sample_image_path(tmp_path):
-    """Create a temporary sample image for testing."""
-    img = Image.new('RGB', (100, 100), color='blue')
-    img_path = tmp_path / "sample.jpg"
-    img.save(img_path)
-    return str(img_path)
+def test_predict_single_value():
+    """Test predict function with a single quantity value."""
+    result = predict(1000)
+    assert result == 2.0
 
 
-def test_predict_with_file_path(sample_image_path):
-    """Test predict function with file path."""
-    result = predict(sample_image_path, ['cat', 'dog'])
-    assert result in ['cat', 'dog']
+def test_predict_zero():
+    """Test predict function with zero quantity."""
+    result = predict(0)
+    assert result == 0.0
 
 
-def test_predict_with_pil_image():
-    """Test predict function with PIL Image."""
-    img = Image.new('RGB', (100, 100), color='green')
-    result = predict(img, ['cat', 'dog', 'bird'])
-    assert result in ['cat', 'dog', 'bird']
+def test_predict_large_quantity():
+    """Test predict function with large quantity."""
+    result = predict(500000)
+    assert result == 1000.0
 
 
-def test_predict_default_classes(sample_image_path):
-    """Test predict with default class names."""
-    result = predict(sample_image_path)
-    default_classes = ['cardboard', 'paper', 'plastic', 'metal', 'trash', 'glass']
-    assert result in default_classes
+def test_predict_numpy_array():
+    """Test predict function with numpy array input."""
+    quantities = np.array([1000, 5000, 10000])
+    result = predict(quantities)
+    expected = np.array([2.0, 10.0, 20.0])
+    
+    assert isinstance(result, np.ndarray)
+    np.testing.assert_array_almost_equal(result, expected)
 
 
-def test_predict_file_not_found():
-    """Test predict with non-existent file."""
-    with pytest.raises(FileNotFoundError):
-        predict("nonexistent.jpg", ['cat'])
+def test_predict_list_input():
+    """Test predict function with list input (numpy broadcasting)."""
+    quantities = [1000, 2000, 3000]
+    result = predict(quantities)
+    expected = [2.0, 4.0, 6.0]
+    
+    # Convert to numpy arrays for comparison
+    np.testing.assert_array_almost_equal(result, expected)
 
 
-def test_resize_with_file_path(sample_image_path):
-    """Test resize function with file path."""
-    result = resize(sample_image_path, 32, 32)
-    assert result == (32, 32)
+def test_predict_float_precision():
+    """Test predict function maintains float precision."""
+    result = predict(1234)
+    assert isinstance(result, float)
+    assert result == pytest.approx(2.468, rel=1e-9)
 
 
-def test_resize_with_pil_image():
-    """Test resize function with PIL Image."""
-    img = Image.new('RGB', (100, 100), color='yellow')
-    result = resize(img, 64, 64)
-    assert result == (64, 64)
+def test_predict_very_small_quantity():
+    """Test predict function with very small quantity."""
+    result = predict(1)
+    assert result == pytest.approx(0.002, rel=1e-9)
 
 
-def test_resize_invalid_width(sample_image_path):
-    """Test resize with invalid width."""
-    with pytest.raises(ValueError, match="'width' must be a positive integer"):
-        resize(sample_image_path, 0, 32)
+def test_predict_negative_quantity():
+    """Test predict function with negative quantity raises ValueError."""
+    with pytest.raises(ValueError, match="'quantity' must be non-negative"):
+        predict(-1000)
 
 
-def test_resize_invalid_height(sample_image_path):
-    """Test resize with invalid height."""
-    with pytest.raises(ValueError, match="'height' must be a positive integer"):
-        resize(sample_image_path, 32, -5)
+def test_predict_negative_in_array():
+    """Test predict function with negative value in array raises ValueError."""
+    quantities = np.array([1000, -500, 10000])
+    with pytest.raises(ValueError, match="'quantity' must be non-negative"):
+        predict(quantities)
 
 
-def test_resize_file_not_found():
-    """Test resize with non-existent file."""
-    with pytest.raises(FileNotFoundError):
-        resize("nonexistent.jpg", 32, 32)
+def test_predict_negative_in_list():
+    """Test predict function with negative value in list raises ValueError."""
+    quantities = [1000, -200, 3000]
+    with pytest.raises(ValueError, match="'quantity' must be non-negative"):
+        predict(quantities)

@@ -1,0 +1,4 @@
+[core]
+    remote = storage
+['remote "storage"']
+    url = https://dagshub.com/the.mlops.magic.wizards/my-first-repo.dvc

@@ -32,7 +32,7 @@ FROM base AS runtime
 COPY --from=builder /usr/local /usr/local
 # Copy the source code of the API, logic and home.html
 COPY api ./api
-COPY mylib ./mylib
+COPY logic ./logic
 COPY templates ./templates
 # Expose the port associated with the API created with FastAPI
 EXPOSE 8000
