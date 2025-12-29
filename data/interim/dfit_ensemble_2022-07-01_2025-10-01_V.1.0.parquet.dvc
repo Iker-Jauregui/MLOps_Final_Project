@@ -1,0 +1,8 @@
+outs:
+- md5: 3dd2604c44459079801b85d8fd3ca927
+  size: 333409
+  hash: md5
+  path: dfit_ensemble_2022-07-01_2025-10-01_V.1.0.parquet
+  desc: |
+    * Created from: notebooks/2_create_toy_data.ipynb
+    * At: 29/12/2025 - 14:18
