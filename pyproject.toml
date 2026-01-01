@@ -29,4 +29,6 @@ dev = [
     "pytest-cov>=7.0.0",
     "pandas>=2.3.3",
     "seaborn>=0.13.2",
+    "optuna>=4.6.0",
+    "mlflow>=3.8.1",
 ]
