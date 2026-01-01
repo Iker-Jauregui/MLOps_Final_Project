@@ -46,11 +46,9 @@ jobs:
       
       - name: Configure DVC remote with DagsHub
         env:
-          DVC_REMOTE: ${{ secrets.DVC_REMOTE }}
           DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
           DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
-          dvc remote add -d storage "$DVC_REMOTE"
           dvc remote modify storage --local auth basic
           dvc remote modify storage --local user "$DAGSHUB_USERNAME"
           dvc remote modify storage --local password "$DAGSHUB_TOKEN"
