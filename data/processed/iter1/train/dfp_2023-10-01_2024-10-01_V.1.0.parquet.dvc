@@ -6,3 +6,5 @@ outs:
   desc: |
     * Created from: notebooks/4_iter1_split_data.ipynb
     * At: 31/12/2025 - 12:37
+  meta:
+      categorical_coverage_json: dfp_2023-10-01_2024-10-01_V.1.0.json
