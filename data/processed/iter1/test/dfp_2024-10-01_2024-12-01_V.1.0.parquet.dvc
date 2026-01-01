@@ -1,0 +1,8 @@
+outs:
+- md5: 5b9888c3f10c94892b695be3e67d3f2c
+  size: 383778
+  hash: md5
+  path: dfp_2024-10-01_2024-12-01_V.1.0.parquet
+  desc: |
+    * Created from: notebooks/4_iter1_split_data.ipynb
+    * At: 31/12/2025 - 12:37
