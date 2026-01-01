@@ -48,14 +48,9 @@ ITER = 1
 # In[3]:
 
 
-DF_TRAIN_DIR = os.path.join(
-    os.getcwd(),
-    '..',
-    'data',
-    'processed',
-    'iter' + str(ITER),
-    'train'
-)
+# Get the project root directory (parent of scripts/)
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DF_TRAIN_DIR = os.path.join(PROJECT_ROOT, 'data', 'processed', 'iter' + str(ITER), 'train')
 df_train_file = list(filter(lambda x: 'parquet' in x and 'dvc' not in x, os.listdir(DF_TRAIN_DIR)))[0]
 train_json_file = list(filter(lambda x: 'json' in x and 'dvc' not in x, os.listdir(DF_TRAIN_DIR)))[0]
 
@@ -90,14 +85,7 @@ df_train.head()
 # In[7]:
 
 
-DF_TEST_DIR = os.path.join(
-    os.getcwd(),
-    '..',
-    'data',
-    'processed',
-    'iter' + str(ITER),
-    'test'
-)
+DF_TEST_DIR = os.path.join(PROJECT_ROOT, 'data', 'processed', 'iter' + str(ITER), 'test')
 df_test_file = list(filter(lambda x: 'parquet' in x and 'dvc' not in x, os.listdir(DF_TEST_DIR)))[0]
 
 
