@@ -41,6 +41,30 @@ jobs:
       - name: Install dependencies
         run: make install
       
+      - name: Set up DVC
+        uses: iterative/setup-dvc@v1
+      
+      - name: Configure DVC remote with DagsHub
+        env:
+          DVC_REMOTE: ${{ secrets.DVC_REMOTE }}
+          DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+        run: |
+          dvc remote add -d storage "$DVC_REMOTE"
+          dvc remote modify storage --local auth basic
+          dvc remote modify storage --local user "$DAGSHUB_USERNAME"
+          dvc remote modify storage --local password "$DAGSHUB_TOKEN"
+      
+      - name: Pull data from DVC
+        run: |
+          dvc pull
+      
+      - name: Verify data exists
+        run: |
+          echo "Checking for training data..."
+          ls -la data/processed/iter1/train/ || echo "⚠️ Train data directory not found"
+          find data/ -name "*.parquet" -type f | head -5 || echo "⚠️ No parquet files found"
+      
       - name: Train model with Optuna and MLflow
         env:
           MLFLOW_TRACKING_URI: ${{ env.MLFLOW_DIR }}
