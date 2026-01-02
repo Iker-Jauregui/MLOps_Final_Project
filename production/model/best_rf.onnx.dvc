@@ -1,5 +1,5 @@
 outs:
-- md5: a95f7d1ff6e566d0029e14550bcf4d34
-  size: 42388900
+- md5: 628981c1583d7612405e134c0342dd1a
+  size: 782169
   hash: md5
   path: best_rf.onnx
