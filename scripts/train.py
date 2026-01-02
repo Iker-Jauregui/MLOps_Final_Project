@@ -217,12 +217,11 @@ for col in X_train.columns:
         X_train[col] = X_train[col].map(category_to_idx)
         X_test[col] = X_test[col].map(category_to_idx)
 
-        # Check if there are still any NaN values (shouldn't happen now)
+        # Check if there are still any NaN values
         if X_train[col].isna().any() or X_test[col].isna().any():
             n_unknown_train = X_train[col].isna().sum()
             n_unknown_test = X_test[col].isna().sum()
             print(f"  ERROR: Still have NaN values in '{col}' - Train: {n_unknown_train}, Test: {n_unknown_test}")
-            # Fallback to -1 for any truly unknown values
             X_train[col] = X_train[col].fillna(-1)
             X_test[col] = X_test[col].fillna(-1)
     else:
