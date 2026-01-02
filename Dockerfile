@@ -1,41 +1,42 @@
-# Base image with Python 3.13
-FROM python:3.13-slim AS base
+# Stage 1: Builder (installs dependencies)
+FROM python:3.12-slim AS builder
 
-# Recommended environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV UV_SYSTEM_PYTHON=1
 
 WORKDIR /app
 
-# Intall the requiered dependencies of the system 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libjpeg-dev \
-    zlib1g-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install uv and the dependencies of the project
-FROM base AS builder
 # Install uv
-RUN pip install --no-cache-dir uv
-# Copy the dependencies file
-COPY pyproject.toml .
-# Copy the lock file if exists
-COPY uv.lock* .
-# Install the dependencies of the project in the system's environment
-RUN uv pip install --system --no-cache .
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Copy the source code and prepare the execution environment
-FROM base AS runtime
-# Copy the installed dependencies
-COPY --from=builder /usr/local /usr/local
-# Copy the source code of the API, logic and home.html
+# Copy dependency files
+COPY pyproject.toml uv.lock* ./
+
+# Install ONLY production dependencies (excludes dev, train, monitoring)
+RUN uv sync --frozen --no-dev
+
+# Stage 2: Runtime (minimal final image)
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Copy installed packages from builder
+COPY --from=builder /app/.venv /app/.venv
+
+# Copy application code
 COPY api ./api
 COPY logic ./logic
 COPY templates ./templates
-COPY production/model/best_rf.onnx /app/production/model/best_rf.onnx
-# Expose the port associated with the API created with FastAPI
+COPY production/model/best_rf.onnx ./production/model/best_rf.onnx
+
+# Use the virtual environment
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Expose port
 EXPOSE 8000
-# Default command: it starts the API with uvicorn
+
+# Run the API
 CMD ["uvicorn", "api.api:app", "--host", "0.0.0.0", "--port", "8000"]

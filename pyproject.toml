@@ -1,42 +1,64 @@
 [project]
 name = "mlops-lab1"
 version = "0.1.0"
-description = "Add your description here"
+description = "Music track revenue prediction API"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "click>=8.3.0",
+    # Production dependencies (ONLY what's needed for API + ONNX inference)
     "fastapi>=0.121.2",
-    "httpx>=0.28.1",
-    "jinja2>=3.1.6",
-    "lightgbm>=4.6.0",
-    "numpy>=2.3.4",
-    "onnxruntime>=1.23.2",
-    "opentelemetry-api>=1.25.0",
-    "opentelemetry-sdk>=1.25.0",
-    "pillow>=12.0.0",
-    "pyarrow>=22.0.0",
-    "python-multipart>=0.0.20",
-    "scikit-learn>=1.8.0",
     "uvicorn>=0.38.0",
-    "xgboost>=3.1.2",
+    "onnxruntime>=1.23.2",
+    "numpy>=2.3.4",
+    "python-multipart>=0.0.20",
+    "jinja2>=3.1.6",  # For templates
 ]
 
 [dependency-groups]
 dev = [
-    "black>=25.11.0",
-    "ipykernel>=7.1.0",
-    "ipywidgets>=8.1.8",
-    "pylint>=4.0.3",
+    # Testing
     "pytest>=9.0.1",
     "pytest-cov>=7.0.0",
+    "httpx>=0.28.1",  # For API tests
+    
+    # Code quality
+    "black>=25.11.0",
+    "pylint>=4.0.3",
+    
+    # Notebooks
+    "ipykernel>=7.1.0",
+    "ipywidgets>=8.1.8",
+]
+
+train = [
+    # Data processing
     "pandas>=2.3.3",
-    "seaborn>=0.13.2",
+    "pyarrow>=22.0.0",
+    
+    # ML training
+    "scikit-learn>=1.8.0",
+    "lightgbm>=4.6.0",
+    "xgboost>=3.1.2",
+    
+    # Hyperparameter optimization
     "optuna>=4.6.0",
-    "mlflow>=3.8.1",
     "optuna-integration[mlflow]>=4.6.0",
-    "shap>=0.49.1",
+    
+    # Experiment tracking
+    "mlflow>=3.8.1",
+    
+    # Model conversion
+    "skl2onnx>=1.19.1",
+    
+    # Visualization
+    "seaborn>=0.13.2",
     "plotly>=6.5.0",
     "kaleido>=1.2.0",
-    "skl2onnx>=1.19.1",
+    "shap>=0.49.1",
+]
+
+monitoring = [
+    # Optional: Only if you want telemetry
+    "opentelemetry-api>=1.25.0",
+    "opentelemetry-sdk>=1.25.0",
 ]
