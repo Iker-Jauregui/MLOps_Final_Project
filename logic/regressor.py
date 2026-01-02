@@ -120,6 +120,6 @@ def predict(quantity, isrc=None, continent=None, zone=None):
     
     # Return scalar if input was scalar, otherwise return array
     if np.asarray(quantity).ndim == 0:
-        return float(predictions[0])
+        return float(predictions.item())
     else:
         return predictions.flatten()

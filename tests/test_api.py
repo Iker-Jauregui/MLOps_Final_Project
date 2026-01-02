@@ -139,9 +139,17 @@ def test_predict_response_structure(client):
     assert response.status_code == 200
     data = response.json()
     
-    # Check that all expected keys are present
-    assert set(data.keys()) == {"quantity", "predicted_revenue"}
+    # Check that all expected keys are present (now includes categorical features)
+    assert set(data.keys()) == {"quantity", "isrc", "continent", "zone", "predicted_revenue"}
     
     # Check data types
     assert isinstance(data["quantity"], (int, float))
+    assert isinstance(data["isrc"], int)
+    assert isinstance(data["continent"], int)
+    assert isinstance(data["zone"], int)
     assert isinstance(data["predicted_revenue"], (int, float))
+    
+    # Check default values are used when not specified
+    assert data["isrc"] == 0        # UNKNOWN
+    assert data["continent"] == 3   # Europe
+    assert data["zone"] == 0        # UNKNOWN
