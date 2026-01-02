@@ -438,7 +438,7 @@ with mlflow.start_run(run_name="optuna_optimization"):
     print("Starting Optuna optimization...")
     study.optimize(
         objective,
-        n_trials=5,
+        n_trials=1,
         show_progress_bar=True
     )
 

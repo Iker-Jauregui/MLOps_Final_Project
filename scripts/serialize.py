@@ -112,8 +112,8 @@ except Exception as e:
 onnx_dir = "models/onnx"
 os.makedirs(onnx_dir, exist_ok=True)
 
-# Save ONNX model with run_id in filename for traceability
-onnx_model_path = os.path.join(onnx_dir, f"best_rf_{best_run_id[:8]}.onnx")
+# Save ONNX model
+onnx_model_path = os.path.join(onnx_dir, f"best_rf.onnx")
 
 with open(onnx_model_path, "wb") as f:
     f.write(onnx_model.SerializeToString())
