@@ -7,7 +7,7 @@ from fastapi.requests import Request
 from fastapi.responses import HTMLResponse
 
 from logic.regressor import predict as predict_func
-from metrics_recorder import get_metrics
+from api.metrics_recorder import get_metrics
 
 # Create an instance of FastAPI
 app = FastAPI(
