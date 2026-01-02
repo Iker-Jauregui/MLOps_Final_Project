@@ -167,7 +167,7 @@ print(f"Unseen zones replaced: {(df_test['zone'] == 'UNKNOWN').sum()}")
 mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "mlruns"))
 
 # Set experiment name
-EXPERIMENT_NAME = "revenue_prediction_toy_training"
+EXPERIMENT_NAME = "revenue_prediction_training"
 mlflow.set_experiment(EXPERIMENT_NAME)
 
 print(f"MLflow tracking URI: {mlflow.get_tracking_uri()}")
@@ -274,10 +274,41 @@ def objective(trial):
 
     # Suggest hyperparameters
     params = {
+        # Tree ensemble parameters
         'n_estimators': trial.suggest_int('n_estimators', 10, 30),
         'max_depth': trial.suggest_int('max_depth', 5, 10),
-        'random_state': 42
+        
+        # Splitting criteria
+        'min_samples_split': trial.suggest_int('min_samples_split', 2, 20),
+        'min_samples_leaf': trial.suggest_int('min_samples_leaf', 1, 10),
+        'min_weight_fraction_leaf': trial.suggest_float('min_weight_fraction_leaf', 0.0, 0.5),
+        
+        # Feature sampling
+        'max_features': trial.suggest_categorical('max_features', ['sqrt', 'log2', 0.5, 0.7, 0.9, None]),
+        
+        # Tree quality
+        'min_impurity_decrease': trial.suggest_float('min_impurity_decrease', 0.0, 0.1),
+        
+        # Bootstrap sampling
+        'bootstrap': trial.suggest_categorical('bootstrap', [True, False]),
+        'max_samples': trial.suggest_float('max_samples', 0.5, 1.0) if trial.params.get('bootstrap', True) else None,
+        
+        # Complexity control
+        'max_leaf_nodes': trial.suggest_int('max_leaf_nodes', 10, 1000, log=True) if trial.suggest_categorical('use_max_leaf_nodes', [True, False]) else None,
+        
+        # Criterion (splitting quality measure)
+        'criterion': trial.suggest_categorical('criterion', ['squared_error', 'absolute_error', 'friedman_mse', 'poisson']),
+        
+        # Class weight (useful for imbalanced regression via binning)
+        'ccp_alpha': trial.suggest_float('ccp_alpha', 0.0, 0.01),  # Cost-complexity pruning
+        
+        # Fixed parameters
+        'random_state': 42,
+        'n_jobs': 2
     }
+    
+    # Remove None values from params
+    params = {k: v for k, v in params.items() if v is not None}
 
     # Start MLflow run (nested under parent run)
     with mlflow.start_run(nested=True, run_name=f"trial_{trial.number}"):
@@ -424,7 +455,7 @@ with mlflow.start_run(run_name="optuna_optimization"):
 
     # Log study configuration
     mlflow.log_param("optimization_metric", "val_rmse")
-    mlflow.log_param("n_trials", 1)
+    mlflow.log_param("n_trials", 20)
     mlflow.log_param("model_type", "RandomForest")
 
     # Create Optuna study
@@ -438,7 +469,7 @@ with mlflow.start_run(run_name="optuna_optimization"):
     print("Starting Optuna optimization...")
     study.optimize(
         objective,
-        n_trials=1,
+        n_trials=20,
         show_progress_bar=True
     )
 

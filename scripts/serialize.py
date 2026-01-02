@@ -35,7 +35,7 @@ mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "mlruns"))
 client = MlflowClient()
 
 # Set your experiment name (change this to match your experiment)
-EXPERIMENT_NAME = "revenue_prediction_toy_training"
+EXPERIMENT_NAME = "revenue_prediction_training"
 
 # Get experiment
 experiment = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
