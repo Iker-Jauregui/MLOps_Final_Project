@@ -4,7 +4,7 @@ Prometheus metrics for monitoring fraud detection model.
 import numpy as np
 
 from prometheus_client import (
-    Counter, Gauge, Histogram, generate_latest, REGISTRY
+    Counter, Gauge, start_http_server, generate_latest, REGISTRY
 )
 
 # Counters
@@ -65,6 +65,7 @@ def get_metrics():
     return generate_latest(REGISTRY)
 
 if __name__ == "__main__":
+    
     start_http_server(8000)
 
     predictions = [
@@ -72,7 +73,7 @@ if __name__ == "__main__":
         0.52210523, 1.33340921, 1.24418252, 1.75571656, 2.6214048
     ]
 
-    noise = 0.04
+    gaussian_noise = 0.04
     results_list = []
 
     for i in range(len(predictions)):
@@ -80,18 +81,18 @@ if __name__ == "__main__":
             result = _generate_range_with_noise(
                 predictions[i] - 0.1, 
                 predictions[i], 
-                noise
+                gaussian_noise
             )
 
         else:
             result = _generate_range_with_noise(
                 predictions[i-1], 
                 predictions[i], 
-                noise
+                gaussian_noise
             )
         results_list.append(result)
 
     final_array = np.concatenate(results_list)
 
-    for i, prediction in enumerate(final_array):
-        record_prediction(prediction)
+    for i, pred in enumerate(final_array):
+        record_prediction(pred)
