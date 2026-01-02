@@ -34,6 +34,44 @@ def test_predict(client):
     assert data["predicted_revenue"] < 100  # Sanity check
 
 
+def test_predict_with_categorical_features(client):
+    """Verify that the endpoint /predict handles categorical features correctly."""
+    response = client.post(
+        "/predict",
+        data={
+            "quantity": "1000",
+            "isrc": "USRC17607839",
+            "continent": "North America",
+            "zone": "USA"
+        }
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["quantity"] == 1000
+    assert data["isrc"] == "USRC17607839"
+    assert data["continent"] == "North America"
+    assert data["zone"] == "USA"
+    assert data["predicted_revenue"] > 0
+
+
+def test_predict_with_partial_categorical_features(client):
+    """Verify that the endpoint /predict handles partial categorical features correctly."""
+    response = client.post(
+        "/predict",
+        data={
+            "quantity": "5000",
+            "continent": "Europe"
+        }
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["quantity"] == 5000
+    assert data["isrc"] == "UNKNOWN"  # Should use default
+    assert data["continent"] == "Europe"
+    assert data["zone"] == "UNKNOWN"  # Should use default
+    assert data["predicted_revenue"] > 0
+
+
 def test_predict_large_quantity(client):
     """Verify that the endpoint /predict handles large quantities correctly."""
     response = client.post(
@@ -114,6 +152,41 @@ def test_predict_very_small_quantity(client):
     assert 0 < data["predicted_revenue"] < 1
 
 
+def test_predict_invalid_continent(client):
+    """Verify that the endpoint /predict handles invalid continent gracefully."""
+    response = client.post(
+        "/predict",
+        data={
+            "quantity": "1000",
+            "continent": "Antarctica"  # Not in training data
+        }
+    )
+    # Should handle gracefully (use UNKNOWN or raise error)
+    assert response.status_code in [200, 400]
+    if response.status_code == 200:
+        data = response.json()
+        assert data["predicted_revenue"] > 0
+
+
+def test_predict_empty_categorical_strings(client):
+    """Verify that the endpoint /predict handles empty strings correctly."""
+    response = client.post(
+        "/predict",
+        data={
+            "quantity": "1000",
+            "isrc": "",
+            "continent": "",
+            "zone": ""
+        }
+    )
+    assert response.status_code == 200
+    data = response.json()
+    # Empty strings should be treated as defaults
+    assert data["isrc"] == "UNKNOWN"
+    assert data["continent"] == "Europe"  # Default
+    assert data["zone"] == "UNKNOWN"
+
+
 def test_predict_monotonicity(client):
     """Verify that predictions increase with quantity (monotonicity test)."""
     quantities = [1000, 5000, 10000, 25000]
@@ -139,17 +212,43 @@ def test_predict_response_structure(client):
     assert response.status_code == 200
     data = response.json()
     
-    # Check that all expected keys are present (now includes categorical features)
+    # Check that all expected keys are present
     assert set(data.keys()) == {"quantity", "isrc", "continent", "zone", "predicted_revenue"}
     
     # Check data types
     assert isinstance(data["quantity"], (int, float))
-    assert isinstance(data["isrc"], int)
-    assert isinstance(data["continent"], int)
-    assert isinstance(data["zone"], int)
+    assert isinstance(data["isrc"], str)         # Now strings
+    assert isinstance(data["continent"], str)    # Now strings
+    assert isinstance(data["zone"], str)         # Now strings
     assert isinstance(data["predicted_revenue"], (int, float))
     
     # Check default values are used when not specified
-    assert data["isrc"] == 0        # UNKNOWN
-    assert data["continent"] == 3   # Europe
-    assert data["zone"] == 0        # UNKNOWN
+    assert data["isrc"] == "UNKNOWN"
+    assert data["continent"] == "Europe"
+    assert data["zone"] == "UNKNOWN"
+
+
+def test_predict_consistency(client):
+    """Verify that the same input produces the same output."""
+    response1 = client.post(
+        "/predict",
+        data={
+            "quantity": "1000",
+            "continent": "Europe"
+        }
+    )
+    response2 = client.post(
+        "/predict",
+        data={
+            "quantity": "1000",
+            "continent": "Europe"
+        }
+    )
+    
+    assert response1.status_code == 200
+    assert response2.status_code == 200
+    
+    data1 = response1.json()
+    data2 = response2.json()
+    
+    assert data1["predicted_revenue"] == data2["predicted_revenue"]

@@ -34,14 +34,20 @@ jobs:
           dvc remote modify storage --local user "$DAGSHUB_USERNAME"
           dvc remote modify storage --local password "$DAGSHUB_TOKEN"
     
-      - name: Pull production model from DVC
+      - name: Pull production artifacts from DVC
         run: |
           if [ -f production/model/best_rf.onnx.dvc ]; then
-            echo "📥 Pulling production model from DVC..."
+            echo "Pulling production model from DVC..."
             dvc pull production/model/best_rf.onnx.dvc
           else
-            echo "⚠️ No production model found"
-            exit 0
+            echo "No production model found"
+          fi
+          
+          if [ -f production/model/categorical_metadata.json.dvc ]; then
+            echo "Pulling categorical metadata from DVC..."
+            dvc pull production/model/categorical_metadata.json.dvc
+          else
+            echo "No categorical metadata found"
           fi
     
       - name: format
@@ -68,10 +74,10 @@ jobs:
           COMMIT_MESSAGE=$(git log -1 --pretty=%B)
           if echo "$COMMIT_MESSAGE" | grep -q "#TRAIN"; then
             echo "should_train=true" >> $GITHUB_OUTPUT
-            echo "✅ #TRAIN tag found - will train model"
+            echo "#TRAIN tag found - will train model"
           else
             echo "should_train=false" >> $GITHUB_OUTPUT
-            echo "ℹ️  No #TRAIN tag - skipping training"
+            echo "No #TRAIN tag - skipping training"
           fi
 
   train-and-serialize:
@@ -112,8 +118,8 @@ jobs:
       - name: Verify data exists
         run: |
           echo "Checking for training data..."
-          ls -la data/processed/iter1/train/ || echo "⚠️ Train data directory not found"
-          find data/ -name "*.parquet" -type f | head -5 || echo "⚠️ No parquet files found"
+          ls -la data/processed/iter1/train/ || echo "Train data directory not found"
+          find data/ -name "*.parquet" -type f | head -5 || echo "No parquet files found"
       
       - name: Train model with Optuna and MLflow
         env:
@@ -125,35 +131,57 @@ jobs:
           MLFLOW_TRACKING_URI: ${{ env.MLFLOW_DIR }}
         run: uv run --group train scripts/serialize.py
       
-      - name: Copy model to production directory
+      - name: Copy artifacts to production directory
         run: |
           mkdir -p production/model
+          
+          # Copy ONNX model
           cp models/onnx/best_rf.onnx production/model/best_rf.onnx
-          echo "✅ Model copied to production/model/best_rf.onnx"
+          echo "Model copied to production/model/best_rf.onnx"
+          
+          # Copy categorical metadata JSON
+          if [ -f models/onnx/categorical_metadata.json ]; then
+            cp models/onnx/categorical_metadata.json production/model/categorical_metadata.json
+            echo "Metadata copied to production/model/categorical_metadata.json"
+          else
+            echo "categorical_metadata.json not found in models/onnx/"
+            exit 1
+          fi
       
-      - name: Add model to DVC
+      - name: Add artifacts to DVC
         run: |
+          # Add model to DVC
           dvc add production/model/best_rf.onnx
-          echo "✅ Model added to DVC"
+          echo "Model added to DVC"
+          
+          # Add metadata to DVC
+          dvc add production/model/categorical_metadata.json
+          echo "Metadata added to DVC"
       
-      - name: Commit and push model to Git
+      - name: Commit and push artifacts to Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add production/model/best_rf.onnx.dvc production/model/.gitignore
-          git commit -m "Update production model [skip ci]" || echo "No changes to commit"
+          
+          git add production/model/best_rf.onnx.dvc \
+                  production/model/categorical_metadata.json.dvc \
+                  production/model/.gitignore
+          
+          git commit -m "Update production model and metadata [skip ci]" || echo "No changes to commit"
           git push
       
-      - name: Push model to DVC remote
+      - name: Push artifacts to DVC remote
         run: |
           dvc push --jobs 1 -v
-          echo "✅ Model pushed to DVC remote (DagsHub)"
+          echo "Model and metadata pushed to DVC remote (DagsHub)"
       
       - name: Upload model artifacts
         uses: actions/upload-artifact@v4
         with:
           name: trained-model
-          path: production/model/best_rf.onnx
+          path: |
+            production/model/best_rf.onnx
+            production/model/categorical_metadata.json
           retention-days: 30
       
       - name: Clean up MLflow directory
@@ -173,16 +201,16 @@ jobs:
           submodules: recursive
           ref: main  # Get the latest code including model commit
       
-      - name: Get production model
+      - name: Get production artifacts
         env:
           DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
           DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
           if [ "${{ needs.check-train-flag.outputs.should_train }}" == "true" ]; then
-            echo "📥 Downloading freshly trained model from artifact..."
+            echo "Downloading freshly trained artifacts from artifact..."
             mkdir -p production/model
           else
-            echo "📥 Pulling existing model from DVC..."
+            echo "Pulling existing artifacts from DVC..."
             # Set up DVC
             pip install dvc dvc-gs
             
@@ -191,24 +219,33 @@ jobs:
             dvc remote modify storage --local user "$DAGSHUB_USERNAME"
             dvc remote modify storage --local password "$DAGSHUB_TOKEN"
             
-            # Pull the production model
+            # Pull the production artifacts
             dvc pull production/model/best_rf.onnx.dvc
+            dvc pull production/model/categorical_metadata.json.dvc
           fi
       
-      - name: Download model artifact (if trained)
+      - name: Download artifacts (if trained)
         if: needs.check-train-flag.outputs.should_train == 'true'
         uses: actions/download-artifact@v4
         with:
           name: trained-model
           path: production/model/
       
-      - name: Verify model exists
+      - name: Verify artifacts exist
         run: |
+          # Check model
           if [ ! -f production/model/best_rf.onnx ]; then
-            echo "❌ Model not found at production/model/best_rf.onnx"
+            echo "Model not found at production/model/best_rf.onnx"
             exit 1
           fi
-          echo "✅ Model ready for deployment: $(ls -lh production/model/best_rf.onnx)"
+          echo "Model ready: $(ls -lh production/model/best_rf.onnx)"
+          
+          # Check metadata
+          if [ ! -f production/model/categorical_metadata.json ]; then
+            echo "Metadata not found at production/model/categorical_metadata.json"
+            exit 1
+          fi
+          echo "Metadata ready: $(ls -lh production/model/categorical_metadata.json)"
 
       - name: Set up QEMU (for buildx)
         uses: docker/setup-qemu-action@v3

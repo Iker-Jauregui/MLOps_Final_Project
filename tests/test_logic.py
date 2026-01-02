@@ -13,6 +13,40 @@ def test_predict_single_value():
     assert result > 0
 
 
+def test_predict_with_categorical_features():
+    """Test predict function with categorical features."""
+    result = predict(
+        quantity=1000,
+        isrc="USRC17607839",
+        continent="North America",
+        zone="USA"
+    )
+    assert isinstance(result, float)
+    assert result > 0
+
+
+def test_predict_with_partial_categorical_features():
+    """Test predict function with partial categorical features."""
+    result = predict(
+        quantity=1000,
+        continent="Europe"
+    )
+    assert isinstance(result, float)
+    assert result > 0
+
+
+def test_predict_with_unknown_categorical():
+    """Test predict function with unknown categorical value."""
+    result = predict(
+        quantity=1000,
+        isrc="UNKNOWN_ISRC_CODE",  # Not in training data
+        continent="Europe"
+    )
+    # Should handle gracefully and return a prediction
+    assert isinstance(result, float)
+    assert result > 0
+
+
 def test_predict_zero():
     """Test predict function with zero quantity."""
     result = predict(0)
@@ -89,3 +123,36 @@ def test_predict_monotonicity():
     for i in range(len(predictions) - 1):
         assert predictions[i] < predictions[i + 1], \
             f"Prediction should increase: {predictions[i]} < {predictions[i+1]}"
+
+
+def test_predict_default_continent():
+    """Test that default continent is Europe."""
+    result_with_default = predict(1000)
+    result_with_europe = predict(1000, continent="Europe")
+    
+    # Should be the same prediction
+    assert result_with_default == pytest.approx(result_with_europe, rel=1e-6)
+
+
+def test_predict_empty_string_handling():
+    """Test that empty strings are handled as None."""
+    result = predict(
+        quantity=1000,
+        isrc="",
+        continent="",
+        zone=""
+    )
+    assert isinstance(result, float)
+    assert result > 0
+
+
+def test_predict_none_handling():
+    """Test that None values use defaults."""
+    result = predict(
+        quantity=1000,
+        isrc=None,
+        continent=None,
+        zone=None
+    )
+    assert isinstance(result, float)
+    assert result > 0

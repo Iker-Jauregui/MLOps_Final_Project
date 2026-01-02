@@ -1,0 +1,5 @@
+outs:
+- md5: 198285135f6d4dd88fe2c8d272fc07ba
+  size: 9734
+  hash: md5
+  path: categorical_metadata.json

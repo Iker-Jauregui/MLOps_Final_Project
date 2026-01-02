@@ -10,6 +10,7 @@
 
 import os
 import json
+import shutil
 import pandas as pd
 import numpy as np
 
@@ -124,3 +125,66 @@ print(f"ONNX model saved to: {onnx_model_path}")
 print(f"Model size: {model_size_kb:.2f} KB")
 
 
+# Copy categorical metadata from MLflow artifacts
+print("\n" + "="*60)
+print("Copying categorical metadata...")
+print("="*60)
+
+try:
+    # Download the artifacts directory for the best run
+    artifacts_path = client.download_artifacts(best_run_id, "")
+    
+    # Path to dataset_metadata directory in MLflow artifacts
+    metadata_dir = os.path.join(artifacts_path, "dataset_metadata")
+    
+    # Destination path (renamed to categorical_metadata.json)
+    json_destination = os.path.join(onnx_dir, "categorical_metadata.json")
+    
+    if os.path.exists(metadata_dir) and os.path.isdir(metadata_dir):
+        # Find the first JSON file in the dataset_metadata directory
+        json_files = [f for f in os.listdir(metadata_dir) if f.endswith('.json')]
+        
+        if json_files:
+            # Use the first JSON file found
+            source_json = os.path.join(metadata_dir, json_files[0])
+            shutil.copy2(source_json, json_destination)
+            print(f"Categorical metadata copied from: {json_files[0]}")
+            print(f"Saved as: {json_destination}")
+            
+            # Display metadata content
+            with open(json_destination, 'r') as f:
+                metadata = json.load(f)
+            print(f"\nMetadata summary:")
+            print(f"  ISRC classes: {metadata.get('ISRC', {}).get('n_classes', 'N/A')}")
+            print(f"  Continent classes: {metadata.get('continent', {}).get('n_classes', 'N/A')}")
+            print(f"  Zone classes: {metadata.get('zone', {}).get('n_classes', 'N/A')}")
+        else:
+            raise FileNotFoundError(f"No JSON files found in {metadata_dir}")
+    else:
+        print(f"Warning: dataset_metadata directory not found at {metadata_dir}")
+        print(f"Searching recursively in artifacts directory...")
+        
+        # Fallback: search recursively for any JSON file
+        found = False
+        for root, dirs, files in os.walk(artifacts_path):
+            json_files = [f for f in files if f.endswith('.json')]
+            if json_files:
+                source_json = os.path.join(root, json_files[0])
+                shutil.copy2(source_json, json_destination)
+                print(f"Found and copied from: {source_json}")
+                found = True
+                break
+        
+        if not found:
+            raise FileNotFoundError("No JSON metadata file found in MLflow run artifacts")
+
+except Exception as e:
+    print(f"Error copying metadata: {e}")
+    raise
+
+print("\n" + "="*60)
+print("Serialization complete!")
+print("="*60)
+print(f"Output directory: {onnx_dir}")
+print(f"  - ONNX model: best_rf.onnx")
+print(f"  - Metadata: categorical_metadata.json")
