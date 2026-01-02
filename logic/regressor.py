@@ -19,7 +19,7 @@ ort_session = ort.InferenceSession(str(MODEL_PATH))
 print(f"ONNX model loaded from {MODEL_PATH}")
 
 # Load categorical metadata
-with open(METADATA_PATH, 'r') as f:
+with open(METADATA_PATH, 'r', encoding='utf-8') as f:
     categorical_metadata = json.load(f)
 print(f"Categorical metadata loaded from {METADATA_PATH}")
 
@@ -49,7 +49,7 @@ for feature_name in MODEL_FEATURES:
     print(f"Loaded encoder for '{feature_name}': {len(categories)} categories")
 
 
-def _encode_categorical(value, feature_name):
+def _encode_categorical(value, feature):
     """
     Encode a categorical value using the loaded metadata.
     
@@ -57,7 +57,7 @@ def _encode_categorical(value, feature_name):
     ----------
     value : str or None
         The category value to encode
-    feature_name : str
+    feature : str
         Name of the feature ('ISRC', 'continent', or 'zone')
     
     Returns
@@ -70,9 +70,9 @@ def _encode_categorical(value, feature_name):
         return 0
     
     # Get the encoder for this feature
-    encoder = ENCODERS.get(feature_name)
+    encoder = ENCODERS.get(feature)
     if encoder is None:
-        print(f"Warning: No encoder found for '{feature_name}', using 0")
+        print(f"Warning: No encoder found for '{feature}', using 0")
         return 0
     
     # Look up the category in the encoder
@@ -80,7 +80,7 @@ def _encode_categorical(value, feature_name):
     
     # If category not found, use UNKNOWN (index 0)
     if encoded_value is None:
-        print(f"Warning: '{value}' not in '{feature_name}' categories, using UNKNOWN")
+        print(f"Warning: '{value}' not in '{feature}' categories, using UNKNOWN")
         return 0
     
     return encoded_value
