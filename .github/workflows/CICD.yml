@@ -7,22 +7,51 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v4
-        with:
-          version: "latest"
-      - name: install packages
-        run: make install
-      - name: format
-        run: make format
-      - name: lint
-        run: make lint
-      - name: test
-        run: make test
+
+build:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+    
+    - name: install packages
+      run: make install
+    
+    # Add DVC setup and pull model
+    - name: Set up DVC
+      uses: iterative/setup-dvc@v1
+    
+    - name: Configure DVC remote with DagsHub
+      env:
+        DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+        DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+      run: |
+        dvc remote modify storage --local auth basic
+        dvc remote modify storage --local user "$DAGSHUB_USERNAME"
+        dvc remote modify storage --local password "$DAGSHUB_TOKEN"
+    
+    - name: Pull production model from DVC
+      run: |
+        if [ -f production/model/best_rf.onnx.dvc ]; then
+          echo "📥 Pulling production model from DVC..."
+          dvc pull production/model/best_rf.onnx.dvc
+        else
+          echo "⚠️ No production model found"
+          exit 0
+        fi
+    
+    - name: format
+      run: make format
+    
+    - name: lint
+      run: make lint
+    
+    - name: test
+      run: make test
 
   # Check if we should train based on commit message
   check-train-flag:
