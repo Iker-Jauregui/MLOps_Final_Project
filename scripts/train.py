@@ -424,7 +424,7 @@ with mlflow.start_run(run_name="optuna_optimization"):
 
     # Log study configuration
     mlflow.log_param("optimization_metric", "val_rmse")
-    mlflow.log_param("n_trials", 5)
+    mlflow.log_param("n_trials", 1)
     mlflow.log_param("model_type", "RandomForest")
 
     # Create Optuna study

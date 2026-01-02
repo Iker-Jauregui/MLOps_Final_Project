@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up uv
         uses: astral-sh/setup-uv@v4
         with:
@@ -24,9 +24,31 @@ jobs:
       - name: test
         run: make test
 
+  # Check if we should train based on commit message
+  check-train-flag:
+    runs-on: ubuntu-latest
+    outputs:
+      should_train: ${{ steps.check.outputs.should_train }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Check for #TRAIN tag
+        id: check
+        run: |
+          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          if echo "$COMMIT_MESSAGE" | grep -q "#TRAIN"; then
+            echo "should_train=true" >> $GITHUB_OUTPUT
+            echo "#TRAIN tag found - will train model"
+          else
+            echo "should_train=false" >> $GITHUB_OUTPUT
+            echo "No #TRAIN tag - skipping training"
+          fi
+
   train-and-serialize:
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, check-train-flag]
+    if: needs.check-train-flag.outputs.should_train == 'true'
     env:
       MLFLOW_DIR: ${{ github.workspace }}/mlruns
     steps:
@@ -54,8 +76,7 @@ jobs:
           dvc remote modify storage --local password "$DAGSHUB_TOKEN"
       
       - name: Pull data from DVC
-        run: |
-          dvc pull
+        run: dvc pull data/processed/iter1/
       
       - name: Verify data exists
         run: |
@@ -66,14 +87,12 @@ jobs:
       - name: Train model with Optuna and MLflow
         env:
           MLFLOW_TRACKING_URI: ${{ env.MLFLOW_DIR }}
-        run: |
-          uv run scripts/train.py
+        run: uv run scripts/train.py
       
       - name: Serialize best model
         env:
           MLFLOW_TRACKING_URI: ${{ env.MLFLOW_DIR }}
-        run: |
-          uv run scripts/serialize.py
+        run: uv run scripts/serialize.py
       
       - name: Upload model artifacts
         uses: actions/upload-artifact@v4
@@ -84,14 +103,14 @@ jobs:
       
       - name: Clean up MLflow directory
         if: always()
-        run: |
-          rm -rf ${{ env.MLFLOW_DIR }}
+        run: rm -rf ${{ env.MLFLOW_DIR }}
 
   deploy:
     runs-on: ubuntu-latest
-    needs: train-and-serialize
+    needs: [train-and-serialize, check-train-flag]
+    if: always() && needs.check-train-flag.outputs.should_train == 'true'
     env:
-          DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/mlops-final-project:latest
+      DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/mlops-final-project:latest
     steps:
       - name: Checkout repository (with submodules)
         uses: actions/checkout@v4 
@@ -130,6 +149,7 @@ jobs:
   deploy-hf:
     runs-on: ubuntu-latest
     needs: deploy
+    if: always() && needs.deploy.result == 'success'
     steps:
       - name: Checkout repository with all branches
         uses: actions/checkout@v4
