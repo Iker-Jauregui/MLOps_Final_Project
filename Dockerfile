@@ -31,6 +31,7 @@ COPY api ./api
 COPY logic ./logic
 COPY templates ./templates
 COPY production/model/best_rf.onnx ./production/model/best_rf.onnx
+COPY production/model/categorical_metadata.json ./production/model/categorical_metadata.json
 
 # Use the virtual environment
 ENV PATH="/app/.venv/bin:$PATH"
