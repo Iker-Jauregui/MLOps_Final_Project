@@ -4,7 +4,7 @@ import uvicorn
 from fastapi import FastAPI, Form, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 
 from logic.regressor import predict as predict_func
 from api.metrics_recorder import get_metrics

@@ -27,14 +27,18 @@ print(f"Categorical metadata loaded from {METADATA_PATH}")
 input_meta = ort_session.get_inputs()[0]
 print(f"Model expects input: {input_meta.name}, shape: {input_meta.shape}")
 
-# Build encoding mappings from JSON metadata
-# Each categorical feature will have a mapping: {category_string: index}
+# Build encoding mappings from JSON metadata (matches train.py logic exactly)
 ENCODERS = {}
+MODEL_FEATURES = ['ISRC', 'continent', 'zone']
 
-for feature_name, feature_info in categorical_metadata.items():
-    categories = feature_info['categories']
+for feature_name in MODEL_FEATURES:
+    if feature_name not in categorical_metadata:
+        print(f"Warning: '{feature_name}' not found in metadata")
+        continue
     
-    # Add 'UNKNOWN' as index 0 if not already present
+    categories = categorical_metadata[feature_name]
+    
+    # Add 'UNKNOWN' as index 0 if not already present (same as train.py)
     if 'UNKNOWN' not in categories:
         categories = ['UNKNOWN'] + categories
     
@@ -42,14 +46,7 @@ for feature_name, feature_info in categorical_metadata.items():
     category_to_idx = {cat: idx for idx, cat in enumerate(categories)}
     ENCODERS[feature_name] = category_to_idx
     
-    print(f"Loaded encoder for '{feature_name}': {len(categories)} categories (including UNKNOWN)")
-
-# Default values (UNKNOWN = 0 for all)
-DEFAULT_ENCODED_VALUES = {
-    'ISRC': 0,      # UNKNOWN
-    'continent': 0, # UNKNOWN (will override with Europe if not provided)
-    'zone': 0       # UNKNOWN
-}
+    print(f"Loaded encoder for '{feature_name}': {len(categories)} categories")
 
 
 def _encode_categorical(value, feature_name):
@@ -68,20 +65,22 @@ def _encode_categorical(value, feature_name):
     int
         Encoded integer value
     """
+    # Handle None or empty string -> use UNKNOWN (index 0)
     if value is None or value == '':
-        return DEFAULT_ENCODED_VALUES[feature_name]
+        return 0
     
     # Get the encoder for this feature
     encoder = ENCODERS.get(feature_name)
     if encoder is None:
-        raise ValueError(f"No encoder found for feature '{feature_name}'")
+        print(f"Warning: No encoder found for '{feature_name}', using 0")
+        return 0
     
     # Look up the category in the encoder
     encoded_value = encoder.get(value)
     
     # If category not found, use UNKNOWN (index 0)
     if encoded_value is None:
-        print(f"Warning: '{value}' not found in '{feature_name}' categories, using UNKNOWN")
+        print(f"Warning: '{value}' not in '{feature_name}' categories, using UNKNOWN")
         return 0
     
     return encoded_value
@@ -104,10 +103,10 @@ def predict(quantity, isrc=None, continent=None, zone=None):
         If None or empty, defaults to "UNKNOWN".
     continent : str, optional
         Continent where the track is being played.
-        Valid values: "Africa", "Asia", "Europe", "LATAM", "North America", "Oceania".
+        Valid values: "Africa", "Asia", "Europe", "LATAM", "North America", "Oceania", "Other".
         If None or empty, defaults to "Europe".
     zone : str, optional
-        Geographic zone within the continent.
+        Geographic zone/country within the continent.
         If None or empty, defaults to "UNKNOWN".
     
     Returns
@@ -134,10 +133,10 @@ def predict(quantity, isrc=None, continent=None, zone=None):
     Examples
     --------
     >>> predict(1000)
-    2.05  # Prediction with defaults (Europe, UNKNOWN ISRC/zone)
+    2.05
     
-    >>> predict(1000, isrc="USRC17607839", continent="North America", zone="USA")
-    2.15  # Prediction with specific categorical values
+    >>> predict(1000, isrc="CA-5KR-00-04598", continent="North America", zone="Canada")
+    2.15
     
     >>> import numpy as np
     >>> predict(np.array([1000, 5000, 10000]))
@@ -159,11 +158,11 @@ def predict(quantity, isrc=None, continent=None, zone=None):
     if continent is None or continent == '':
         continent = "Europe"
     
-    # Encode categorical features
+    # Encode categorical features to integers (same logic as train.py)
     isrc_encoded = _encode_categorical(isrc, 'ISRC')
     continent_encoded = _encode_categorical(continent, 'continent')
     zone_encoded = _encode_categorical(zone, 'zone')
-
+    
     # Prepare input with all 4 features: [ISRC, continent, zone, quantity]
     if quantity_array.ndim == 0:
         # Scalar input
