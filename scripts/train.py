@@ -277,29 +277,8 @@ def objective(trial):
         'n_estimators': trial.suggest_int('n_estimators', 10, 30),
         'max_depth': trial.suggest_int('max_depth', 5, 10),
         
-        # Splitting criteria
-        'min_samples_split': trial.suggest_int('min_samples_split', 2, 20),
-        'min_samples_leaf': trial.suggest_int('min_samples_leaf', 1, 10),
-        'min_weight_fraction_leaf': trial.suggest_float('min_weight_fraction_leaf', 0.0, 0.5),
-        
         # Feature sampling
         'max_features': trial.suggest_categorical('max_features', ['sqrt', 'log2', 0.5, 0.7, 0.9, None]),
-        
-        # Tree quality
-        'min_impurity_decrease': trial.suggest_float('min_impurity_decrease', 0.0, 0.1),
-        
-        # Bootstrap sampling
-        'bootstrap': trial.suggest_categorical('bootstrap', [True, False]),
-        'max_samples': trial.suggest_float('max_samples', 0.5, 1.0) if trial.params.get('bootstrap', True) else None,
-        
-        # Complexity control
-        'max_leaf_nodes': trial.suggest_int('max_leaf_nodes', 10, 1000, log=True) if trial.suggest_categorical('use_max_leaf_nodes', [True, False]) else None,
-        
-        # Criterion (splitting quality measure)
-        'criterion': trial.suggest_categorical('criterion', ['squared_error', 'absolute_error', 'friedman_mse', 'poisson']),
-        
-        # Class weight (useful for imbalanced regression via binning)
-        'ccp_alpha': trial.suggest_float('ccp_alpha', 0.0, 0.01),  # Cost-complexity pruning
         
         # Fixed parameters
         'random_state': 42,
