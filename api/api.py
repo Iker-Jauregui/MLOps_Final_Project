@@ -7,6 +7,7 @@ from fastapi.requests import Request
 from fastapi.responses import HTMLResponse
 
 from logic.regressor import predict as predict_func
+from metrics_recorder import get_metrics
 
 # Create an instance of FastAPI
 app = FastAPI(
@@ -139,6 +140,12 @@ async def predict_endpoint(
             detail=f"Unexpected error: {str(e)}"
         ) from e
 
+@app.get("/metrics")
+async def metrics_endpoint():
+    return Response(
+        content=get_metrics(), 
+        media_type="text/plain"
+    )
 
 # Entry point (for direct execution only)
 if __name__ == "__main__":
