@@ -75,8 +75,10 @@ jobs:
           dvc remote modify storage --local user "$DAGSHUB_USERNAME"
           dvc remote modify storage --local password "$DAGSHUB_TOKEN"
       
-      - name: Pull data from DVC
-        run: dvc pull data/processed/iter1/
+      - name: Pull training and test data from DVC
+        run: |
+          dvc pull data/processed/iter1/train/*.dvc
+          dvc pull data/processed/iter1/test/*.dvc
       
       - name: Verify data exists
         run: |
