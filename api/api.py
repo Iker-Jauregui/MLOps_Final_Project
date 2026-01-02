@@ -11,8 +11,8 @@ from logic.regressor import predict as predict_func
 # Create an instance of FastAPI
 app = FastAPI(
     title="API of the Track Revenue Predictor using FastAPI",
-    description="API to predict track revenue based on reproduction quantity",
-    version="1.0.0",
+    description="API to predict track revenue based on reproduction quantity and track features",
+    version="2.0.0",
 )
 
 # We use the templates folder to obtain HTML files
@@ -30,29 +30,33 @@ def home(request: Request):
 @app.post("/predict")
 async def predict_endpoint(
     quantity: float = Form(...),
-    isrc: int = Form(None),
-    continent: int = Form(None),
-    zone: int = Form(None)
+    isrc: str = Form(None),
+    continent: str = Form(None),
+    zone: str = Form(None)
 ):
     """
-    Predict the revenue based on reproduction quantity and optional categorical features.
+    Predict the revenue based on reproduction quantity and track features.
 
     Parameters
     ----------
     quantity : float
         Number of reproductions/streams/plays for the track.
         Must be non-negative.
-    isrc : int, optional
-        ISRC code (encoded as integer). Defaults to 0 (UNKNOWN).
-    continent : int, optional
-        Continent code (encoded as integer). Defaults to 3 (Europe).
-    zone : int, optional
-        Zone code (encoded as integer). Defaults to 0 (UNKNOWN).
+    isrc : str, optional
+        International Standard Recording Code (ISRC) of the track.
+        If not provided or empty, defaults to "UNKNOWN".
+    continent : str, optional
+        Continent where the track is being played.
+        Valid values: "Africa", "Asia", "Europe", "LATAM", "North America", "Oceania".
+        If not provided or empty, defaults to "Europe".
+    zone : str, optional
+        Geographic zone within the continent.
+        If not provided or empty, defaults to "UNKNOWN".
 
     Returns
     -------
     dict
-        Dictionary with predicted revenue, input quantity, and feature values used.
+        Dictionary with predicted revenue and input features used.
         Contains keys: 'quantity', 'isrc', 'continent', 'zone', 'predicted_revenue'
 
     Raises
@@ -65,39 +69,74 @@ async def predict_endpoint(
     Basic prediction with defaults:
         POST /predict
         Form data: quantity=1000
-        Response: {"quantity": 1000, "isrc": 0, "continent": 3, "zone": 0, "predicted_revenue": 2.05}
+        Response: {
+            "quantity": 1000, 
+            "isrc": "UNKNOWN", 
+            "continent": "Europe", 
+            "zone": "UNKNOWN", 
+            "predicted_revenue": 2.05
+        }
     
     Prediction with custom features:
         POST /predict
-        Form data: quantity=1000, isrc=42, continent=1, zone=5
-        Response: {"quantity": 1000, "isrc": 42, "continent": 1, "zone": 5, "predicted_revenue": 2.15}
+        Form data: quantity=1000, isrc="USRC17607839", continent="North America", zone="USA"
+        Response: {
+            "quantity": 1000, 
+            "isrc": "USRC17607839", 
+            "continent": "North America", 
+            "zone": "USA", 
+            "predicted_revenue": 2.15
+        }
     """
+    # Validate quantity
     if quantity < 0:
         raise HTTPException(
-            status_code=400, detail="'quantity' must be a non-negative value"
+            status_code=400, 
+            detail="'quantity' must be a non-negative value"
         )
 
     try:
-        # Get prediction with optional categorical features
+        # Handle empty strings and None values for optional parameters
+        # Empty strings from form data should be treated as None
+        isrc_value = isrc if isrc and isrc.strip() else None
+        continent_value = continent if continent and continent.strip() else None
+        zone_value = zone if zone and zone.strip() else None
+        
+        # Get prediction - logic.regressor will handle encoding
         revenue = predict_func(
             quantity=quantity,
-            isrc=isrc,
-            continent=continent,
-            zone=zone
+            isrc=isrc_value,
+            continent=continent_value,
+            zone=zone_value
         )
 
         # Return prediction with all feature values used (for transparency)
+        # Show what the model actually used (after defaults applied in logic.regressor)
         return {
             "quantity": quantity,
-            "isrc": isrc if isrc is not None else 0,      # Show actual default used
-            "continent": continent if continent is not None else 3,
-            "zone": zone if zone is not None else 0,
+            "isrc": isrc_value if isrc_value is not None else "UNKNOWN",
+            "continent": continent_value if continent_value is not None else "Europe",
+            "zone": zone_value if zone_value is not None else "UNKNOWN",
             "predicted_revenue": revenue
         }
 
-    except (ValueError, TypeError) as e:
+    except ValueError as e:
+        # Handle validation errors from logic.regressor (e.g., invalid continent)
         raise HTTPException(
-            status_code=400, detail=f"Error processing prediction: {str(e)}"
+            status_code=400, 
+            detail=f"Invalid input: {str(e)}"
+        ) from e
+    except (TypeError, KeyError) as e:
+        # Handle other processing errors
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error processing prediction: {str(e)}"
+        ) from e
+    except Exception as e:
+        # Catch-all for unexpected errors
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unexpected error: {str(e)}"
         ) from e
 
 
