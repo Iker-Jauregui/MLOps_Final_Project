@@ -118,12 +118,12 @@ jobs:
       - name: Train model with Optuna and MLflow
         env:
           MLFLOW_TRACKING_URI: ${{ env.MLFLOW_DIR }}
-        run: uv run scripts/train.py
+        run: uv run --group train scripts/train.py
       
       - name: Serialize best model
         env:
           MLFLOW_TRACKING_URI: ${{ env.MLFLOW_DIR }}
-        run: uv run scripts/serialize.py
+        run: uv run --group train scripts/serialize.py
       
       - name: Copy model to production directory
         run: |
