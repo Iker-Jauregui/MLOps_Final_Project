@@ -15,19 +15,34 @@ ort_session = ort.InferenceSession(str(MODEL_PATH))
 
 print(f"ONNX model loaded from {MODEL_PATH}")
 
+# Get expected input shape
+input_meta = ort_session.get_inputs()[0]
+print(f"Model expects input: {input_meta.name}, shape: {input_meta.shape}")
 
-def predict(quantity):
+# Default values for categorical features
+DEFAULT_ISRC = 0       # UNKNOWN
+DEFAULT_CONTINENT = 3  # Europe
+DEFAULT_ZONE = 0       # UNKNOWN
+
+
+def predict(quantity, isrc=None, continent=None, zone=None):
     """
     Predict track revenue using a trained Random Forest model (ONNX).
     
     This function uses a production-ready ONNX model to predict revenue
-    based on the number of reproductions.
+    based on the number of reproductions and optional categorical features.
     
     Parameters
     ----------
     quantity : float or array-like
         The number of reproductions/streams/plays for the track(s).
         Must be non-negative.
+    isrc : int, optional
+        ISRC code (encoded as integer). If None, defaults to 0 (UNKNOWN).
+    continent : int, optional
+        Continent code (encoded as integer). If None, defaults to 3 (Europe).
+    zone : int, optional
+        Zone code (encoded as integer). If None, defaults to 0 (UNKNOWN).
     
     Returns
     -------
@@ -38,23 +53,28 @@ def predict(quantity):
     -----
     **Model Architecture:**
     - Random Forest trained with Optuna optimization
-    - Input: number of reproductions (streams)
+    - Input features (in order): ISRC, continent, zone, quantity
     - Output: predicted revenue in euros
     
-    **Input shape:** (n_samples, 1)
-    **Data type:** float32
+    **Default feature values:**
+    - ISRC: 0 (UNKNOWN)
+    - continent: 3 (Europe)
+    - zone: 0 (UNKNOWN)
+    
+    **Feature encoding:**
+    All categorical features use label encoding where index 0 represents UNKNOWN.
     
     Examples
     --------
     >>> predict(1000)
-    2.05  # Example output from ONNX model
+    2.05  # Prediction with default categorical features
     
-    >>> predict(500000)
-    987.3  # Model prediction
+    >>> predict(1000, isrc=42, continent=3, zone=5)
+    2.15  # Prediction with specific categorical values
     
     >>> import numpy as np
     >>> predict(np.array([1000, 5000, 10000]))
-    array([  2.05,  10.12,  19.87])  # Model predictions
+    array([  2.05,  10.12,  19.87])
     
     Raises
     ------
@@ -68,13 +88,29 @@ def predict(quantity):
     if np.any(quantity_array < 0):
         raise ValueError("'quantity' must be non-negative")
 
-    # Reshape for model input: (n_samples, 1)
+    # Use defaults if not provided
+    isrc = DEFAULT_ISRC if isrc is None else isrc
+    continent = DEFAULT_CONTINENT if continent is None else continent
+    zone = DEFAULT_ZONE if zone is None else zone
+
+    # Prepare input with all 4 features: [ISRC, continent, zone, quantity]
     if quantity_array.ndim == 0:
         # Scalar input
-        input_data = quantity_array.reshape(1, 1)
+        input_data = np.array([[
+            float(isrc),
+            float(continent),
+            float(zone),
+            float(quantity_array)
+        ]], dtype=np.float32)
     else:
-        # Array input
-        input_data = quantity_array.reshape(-1, 1)
+        # Array input - broadcast categorical features to all samples
+        n_samples = len(quantity_array)
+        input_data = np.column_stack([
+            np.full(n_samples, isrc, dtype=np.float32),
+            np.full(n_samples, continent, dtype=np.float32),
+            np.full(n_samples, zone, dtype=np.float32),
+            quantity_array.flatten()
+        ])
     
     # Get input name from ONNX model
     input_name = ort_session.get_inputs()[0].name

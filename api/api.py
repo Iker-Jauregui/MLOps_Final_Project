@@ -30,26 +30,47 @@ def home(request: Request):
 @app.post("/predict")
 async def predict_endpoint(
     quantity: float = Form(...),
+    isrc: int = Form(None),
+    continent: int = Form(None),
+    zone: int = Form(None)
 ):
     """
-    Predict the revenue based on reproduction quantity.
+    Predict the revenue based on reproduction quantity and optional categorical features.
 
     Parameters
     ----------
     quantity : float
         Number of reproductions/streams/plays for the track.
         Must be non-negative.
+    isrc : int, optional
+        ISRC code (encoded as integer). Defaults to 0 (UNKNOWN).
+    continent : int, optional
+        Continent code (encoded as integer). Defaults to 3 (Europe).
+    zone : int, optional
+        Zone code (encoded as integer). Defaults to 0 (UNKNOWN).
 
     Returns
     -------
     dict
-        Dictionary with predicted revenue and input quantity.
-        Contains keys: 'quantity', 'predicted_revenue'
+        Dictionary with predicted revenue, input quantity, and feature values used.
+        Contains keys: 'quantity', 'isrc', 'continent', 'zone', 'predicted_revenue'
 
     Raises
     ------
     HTTPException
         If quantity is negative or if an error occurs during prediction.
+    
+    Examples
+    --------
+    Basic prediction with defaults:
+        POST /predict
+        Form data: quantity=1000
+        Response: {"quantity": 1000, "isrc": 0, "continent": 3, "zone": 0, "predicted_revenue": 2.05}
+    
+    Prediction with custom features:
+        POST /predict
+        Form data: quantity=1000, isrc=42, continent=1, zone=5
+        Response: {"quantity": 1000, "isrc": 42, "continent": 1, "zone": 5, "predicted_revenue": 2.15}
     """
     if quantity < 0:
         raise HTTPException(
@@ -57,11 +78,20 @@ async def predict_endpoint(
         )
 
     try:
-        # Get prediction
-        revenue = predict_func(quantity)
+        # Get prediction with optional categorical features
+        revenue = predict_func(
+            quantity=quantity,
+            isrc=isrc,
+            continent=continent,
+            zone=zone
+        )
 
+        # Return prediction with all feature values used (for transparency)
         return {
             "quantity": quantity,
+            "isrc": isrc if isrc is not None else 0,      # Show actual default used
+            "continent": continent if continent is not None else 3,
+            "zone": zone if zone is not None else 0,
             "predicted_revenue": revenue
         }
 
