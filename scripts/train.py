@@ -274,8 +274,8 @@ def objective(trial):
 
     # Suggest hyperparameters
     params = {
-        'n_estimators': trial.suggest_int('n_estimators', 50, 200),
-        'max_depth': trial.suggest_int('max_depth', 5, 20),
+        'n_estimators': trial.suggest_int('n_estimators', 10, 30),
+        'max_depth': trial.suggest_int('max_depth', 5, 10),
         'random_state': 42
     }
 
