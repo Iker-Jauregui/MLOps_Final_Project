@@ -80,11 +80,106 @@ def predict(isrc, continent, zone, quantity):
         input_quantity = data.get("quantity", quantity)
         
         # Format the result
-        result = f"""
-### 🎯 Prediction Results
+        result = f"""### 🎯 Prediction Results
 
 **Input Features:**
 - **ISRC:** {input_isrc}
 - **Continent:** {input_continent}
 - **Zone:** {input_zone}
-- **Quantity:** {input_quantity:,.0f
+- **Quantity:** {input_quantity:,.0f} plays
+
+---
+
+**💰 Predicted Revenue:** {predicted_revenue:,.2f}€"""
+        
+        return result.strip()
+        
+    except requests.exceptions.ConnectionError:
+        return f"❌ **Error:** Could not connect to API at {API_URL}.\n\nPlease ensure the server is running."
+    except requests.exceptions.Timeout:
+        return "❌ **Error:** Request timed out. Please try again."
+    except requests.exceptions.HTTPError as e:
+        error_detail = ""
+        try:
+            error_detail = e.response.json().get("detail", e.response.text)
+        except:
+            error_detail = e.response.text
+        return f"❌ **Error:** API returned status code {e.response.status_code}\n\n{error_detail}"
+    except Exception as e:
+        return f"❌ **Error:** {str(e)}"
+
+
+# GUI created using Gradio
+with gr.Blocks(title="🎵 Track Revenue Predictor") as iface:
+    gr.Markdown("# 🎵 Track Revenue Predictor")
+    gr.Markdown("""
+    **Predict track revenue based on multiple features**
+    
+    This application uses a machine learning model trained on real streaming data to predict revenue.
+    
+    **How to use:**
+    1. (Optional) Enter the ISRC code of the track
+    2. Select the continent where the track is being played
+    3. (Optional) Enter the specific zone within the continent
+    4. Enter the number of reproductions/streams/plays
+    5. Click **Submit** to get the predicted revenue
+    
+    **Note:** ISRC and Zone fields are optional. If left empty, the model will use appropriate default values.
+    """)
+    
+    with gr.Row():
+        with gr.Column():
+            isrc_input = gr.Textbox(
+                label="ISRC (International Standard Recording Code)",
+                placeholder="e.g., USRC17607839 (optional)",
+                value="",
+            )
+            continent_input = gr.Dropdown(
+                label="Continent",
+                choices=CONTINENT_OPTIONS,
+                value="Europe",
+            )
+            zone_input = gr.Textbox(
+                label="Zone",
+                placeholder="e.g., Western Europe, East Asia (optional)",
+                value="",
+            )
+            quantity_input = gr.Number(
+                label="Number of Reproductions/Plays",
+                value=1000,
+                minimum=0,
+            )
+            
+            submit_btn = gr.Button("Submit", variant="primary")
+        
+        with gr.Column():
+            output = gr.Markdown(label="Prediction Result")
+    
+    # Examples section
+    gr.Markdown("### 📝 Example Inputs")
+    gr.Examples(
+        examples=[
+            ["USRC17607839", "Europe", "Western Europe", 1000],
+            ["", "North America", "", 5000],
+            ["GBUM71507547", "Asia", "East Asia", 10000],
+            ["", "LATAM", "South America", 50000],
+            ["USUM71808193", "Oceania", "", 100000],
+            ["", "Africa", "North Africa", 500000],
+        ],
+        inputs=[isrc_input, continent_input, zone_input, quantity_input],
+    )
+    
+    # Connect the button to the prediction function
+    submit_btn.click(
+        fn=predict,
+        inputs=[isrc_input, continent_input, zone_input, quantity_input],
+        outputs=output,
+    )
+
+# Launch the GUI
+if __name__ == "__main__":
+    iface.launch(
+        server_name="0.0.0.0",
+        server_port=7860,
+        share=False
+    )
