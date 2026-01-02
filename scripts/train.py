@@ -317,7 +317,7 @@ def objective(trial):
         mlflow.log_param("cv_folds", k_folds)
 
         # Create model
-        model = RandomForestRegressor(**params, n_jobs=2)
+        model = RandomForestRegressor(**params)
 
         # Train with cross-validation and track training time
         start_time = time.time()
