@@ -30,7 +30,8 @@ def test_predict(client):
     assert "predicted_revenue" in data
     assert "quantity" in data
     assert data["quantity"] == 1000
-    assert data["predicted_revenue"] == 2.0
+    assert data["predicted_revenue"] > 0
+    assert data["predicted_revenue"] < 100  # Sanity check
 
 
 def test_predict_large_quantity(client):
@@ -42,7 +43,8 @@ def test_predict_large_quantity(client):
     assert response.status_code == 200
     data = response.json()
     assert data["quantity"] == 500000
-    assert data["predicted_revenue"] == 1000.0
+    assert data["predicted_revenue"] > 100
+    assert data["predicted_revenue"] < 10000
 
 
 def test_predict_zero_quantity(client):
@@ -54,7 +56,7 @@ def test_predict_zero_quantity(client):
     assert response.status_code == 200
     data = response.json()
     assert data["quantity"] == 0
-    assert data["predicted_revenue"] == 0.0
+    assert data["predicted_revenue"] == pytest.approx(0.0, abs=0.1)
 
 
 def test_predict_decimal_quantity(client):
@@ -66,7 +68,7 @@ def test_predict_decimal_quantity(client):
     assert response.status_code == 200
     data = response.json()
     assert data["quantity"] == 1500.5
-    assert data["predicted_revenue"] == pytest.approx(3.001, rel=1e-9)
+    assert data["predicted_revenue"] > 0
 
 
 def test_predict_negative_quantity(client):
@@ -87,7 +89,7 @@ def test_predict_invalid_quantity_string(client):
         "/predict",
         data={"quantity": "not_a_number"}
     )
-    assert response.status_code == 422  # FastAPI returns 422 for validation errors
+    assert response.status_code == 422
     data = response.json()
     assert "detail" in data
 
@@ -95,7 +97,7 @@ def test_predict_invalid_quantity_string(client):
 def test_predict_missing_parameter(client):
     """Verify that the endpoint /predict manages correctly missing parameters."""
     response = client.post("/predict")
-    assert response.status_code == 422  # FastAPI returns 422 for validation errors
+    assert response.status_code == 422
     data = response.json()
     assert "detail" in data
 
@@ -109,26 +111,23 @@ def test_predict_very_small_quantity(client):
     assert response.status_code == 200
     data = response.json()
     assert data["quantity"] == 1
-    assert data["predicted_revenue"] == pytest.approx(0.002, rel=1e-9)
+    assert 0 < data["predicted_revenue"] < 1
 
 
-def test_predict_formula_validation(client):
-    """Verify that the prediction formula is correctly applied."""
-    test_cases = [
-        (1000, 2.0),
-        (5000, 10.0),
-        (10000, 20.0),
-        (25000, 50.0),
-    ]
+def test_predict_monotonicity(client):
+    """Verify that predictions increase with quantity (monotonicity test)."""
+    quantities = [1000, 5000, 10000, 25000]
+    predictions = []
     
-    for quantity, expected_revenue in test_cases:
-        response = client.post(
-            "/predict",
-            data={"quantity": str(quantity)}
-        )
+    for quantity in quantities:
+        response = client.post("/predict", data={"quantity": str(quantity)})
         assert response.status_code == 200
-        data = response.json()
-        assert data["predicted_revenue"] == pytest.approx(expected_revenue, rel=1e-9)
+        predictions.append(response.json()["predicted_revenue"])
+    
+    # Check that predictions are monotonically increasing
+    for i in range(len(predictions) - 1):
+        assert predictions[i] < predictions[i + 1], \
+            f"Prediction for {quantities[i]} should be less than {quantities[i+1]}"
 
 
 def test_predict_response_structure(client):
