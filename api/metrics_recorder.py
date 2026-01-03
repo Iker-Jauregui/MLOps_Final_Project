@@ -2,7 +2,8 @@
 Prometheus metrics for monitoring fraud detection model.
 """
 import numpy as np
-
+import threading
+import time
 from prometheus_client import (
     Counter, Gauge, generate_latest, REGISTRY
 )
@@ -22,7 +23,7 @@ obtained_rmse = Gauge(
 class MetricsRecorder:
     def __init__(self):
         sample_rmse = [
-            0.46301855, 1.20559233, 0.85118842, 0.83487927, 0.54649135, \
+            0.46301855, 1.20559233, 0.85118842, 0.83487927, 0.54649135,
             0.52210523, 1.33340921, 1.24418252, 1.75571656, 2.6214048
         ]
 
@@ -36,7 +37,6 @@ class MetricsRecorder:
                     sample_rmse[i], 
                     gaussian_noise
                 )
-
             else:
                 result = self._generate_range_with_noise(
                     sample_rmse[i-1], 
@@ -45,10 +45,14 @@ class MetricsRecorder:
                 )
             results_list.append(result)
 
-        final_array = np.concatenate(results_list)
-
-        for i, sample in enumerate(final_array):
-            self.record_rmse(sample)
+        self.final_array = np.concatenate(results_list)
+        self.current_index = 0
+        
+        # Set initial value immediately
+        self.record_rmse(self.final_array[0])
+        
+        # Start background thread
+        self._start_metric_updater()
     
     @staticmethod
     def _generate_range_with_noise(A, B, C):
@@ -83,8 +87,22 @@ class MetricsRecorder:
         
         return range_array
 
+    def _start_metric_updater(self):
+        """Start background thread to update metrics periodically."""
+        def update_metrics():
+            while True:
+                time.sleep(10)  # Wait before updating (aligns with Prometheus scrape interval)
+                
+                # Move to next value
+                self.current_index = (self.current_index + 1) % len(self.final_array)
+                self.record_rmse(self.final_array[self.current_index])
+        
+        thread = threading.Thread(target=update_metrics, daemon=True)
+        thread.start()
+
     @staticmethod
     def record_rmse(rmse: float):
+        """Record a single RMSE value."""
         num_of_rmse.inc()
         obtained_rmse.set(rmse)
 
@@ -101,5 +119,11 @@ class MetricsRecorder:
 metrics_recorder = MetricsRecorder()
 
 if __name__ == "__main__":
-    print()
-    
+    print("MetricsRecorder initialized. Metrics updating every 10 seconds...")
+    # Keep alive for testing
+    try:
+        while True:
+            time.sleep(1)
+            
+    except KeyboardInterrupt:
+        print("Stopped.")
