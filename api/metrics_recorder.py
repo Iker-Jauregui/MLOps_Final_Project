@@ -30,7 +30,7 @@ class MetricsRecorder:
         gaussian_noise = 0.04
         results_list = []
 
-        for i in range(len(sample_rmse)):
+        for i in range(len(self.sample_rmse)):
             if i == 0:
                 result = self._generate_range_with_noise(
                     self.sample_rmse[i] - 0.1, 
