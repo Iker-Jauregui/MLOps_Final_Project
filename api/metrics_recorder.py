@@ -22,7 +22,7 @@ obtained_rmse = Gauge(
 
 class MetricsRecorder:
     def __init__(self):
-        sample_rmse = [
+        self.sample_rmse = [
             0.46301855, 1.20559233, 0.85118842, 0.83487927, 0.54649135,
             0.52210523, 1.33340921, 1.24418252, 1.75571656, 2.6214048
         ]
@@ -33,14 +33,14 @@ class MetricsRecorder:
         for i in range(len(sample_rmse)):
             if i == 0:
                 result = self._generate_range_with_noise(
-                    sample_rmse[i] - 0.1, 
-                    sample_rmse[i], 
+                    self.sample_rmse[i] - 0.1, 
+                    self.sample_rmse[i], 
                     gaussian_noise
                 )
             else:
                 result = self._generate_range_with_noise(
-                    sample_rmse[i-1], 
-                    sample_rmse[i], 
+                    self.sample_rmse[i-1], 
+                    self.sample_rmse[i], 
                     gaussian_noise
                 )
             results_list.append(result)
@@ -94,8 +94,10 @@ class MetricsRecorder:
                 time.sleep(1)  # Wait before updating (aligns with Prometheus scrape interval)
                 
                 # Move to next value
-                self.current_index = (self.current_index + 1) % len(self.final_array)
-                self.record_rmse(self.final_array[self.current_index])
+                # self.current_index = (self.current_index + 1) % len(self.final_array)
+                # self.record_rmse(self.final_array[self.current_index])
+                self.current_index = (self.current_index + 1) % len(self.sample_rmse)
+                self.record_rmse(self.sample_rmse[self.current_index])
         
         thread = threading.Thread(target=update_metrics, daemon=True)
         thread.start()
