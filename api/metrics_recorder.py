@@ -21,34 +21,18 @@ obtained_rmse = Gauge(
 )
 
 class MetricsRecorder:
-    def __init__(self):
+    def __init__(self, gaussian_noise=0.04):
         self.sample_rmse = [
             0.46301855, 1.20559233, 0.85118842, 0.83487927, 0.54649135,
             0.52210523, 1.33340921, 1.24418252, 1.75571656, 2.6214048
         ]
-        # 0, 3, 6, 9
-        # 0.46, 0.83, 1.33, 2.62
-
-        gaussian_noise = 0.04
-        results_list = []
-
-        for i in range(len(self.sample_rmse)):
-            if i == 0:
-                result = self._generate_range_with_noise(
-                    self.sample_rmse[i] - 0.1, 
-                    self.sample_rmse[i], 
-                    gaussian_noise
-                )
-            else:
-                result = self._generate_range_with_noise(
-                    self.sample_rmse[i-1], 
-                    self.sample_rmse[i], 
-                    gaussian_noise
-                )
-            results_list.append(result)
-
-        self.final_array = np.concatenate(results_list)
+        
+        self.gaussian_noise = gaussian_noise
         self.current_index = 0
+        self.current_drift = 0
+        
+        # Generate initial array
+        self.final_array = self._extend_array(drift=0)
         
         # Set initial value immediately
         self.record_rmse(self.final_array[0])
@@ -89,17 +73,58 @@ class MetricsRecorder:
         
         return range_array
 
+    def _extend_array(self, drift=0):
+        """
+        Generate array with optional drift offset.
+        
+        Parameters:
+        -----------
+        drift : float
+            Offset to add to all values (for simulating model drift)
+        
+        Returns:
+        --------
+        numpy.array : Complete array of RMSE values with noise
+        """
+        results_list = []
+
+        for i in range(len(self.sample_rmse)):
+            if i == 0:
+                result = self._generate_range_with_noise(
+                    self.sample_rmse[i] + drift - 0.1, 
+                    self.sample_rmse[i] + drift, 
+                    self.gaussian_noise
+                )
+            else:
+                result = self._generate_range_with_noise(
+                    self.sample_rmse[i-1] + drift, 
+                    self.sample_rmse[i] + drift, 
+                    self.gaussian_noise
+                )
+
+            results_list.append(result)
+
+        results_array = np.concatenate(results_list)
+        return results_array 
+
     def _start_metric_updater(self):
         """Start background thread to update metrics periodically."""
         def update_metrics():
             while True:
                 time.sleep(1)  # Wait before updating (aligns with Prometheus scrape interval)
                 
+                # Record current value
+                self.record_rmse(self.final_array[self.current_index])
+                
                 # Move to next value
-                # self.current_index = (self.current_index + 1) % len(self.final_array)
-                # self.record_rmse(self.final_array[self.current_index])
-                self.current_index = (self.current_index + 1) % len(self.sample_rmse)
-                self.record_rmse(self.sample_rmse[self.current_index])
+                self.current_index = (self.current_index + 1) % len(self.final_array)
+                
+                # If we completed a cycle, regenerate with accumulated drift
+                if self.current_index == 0:
+                    # Accumulate drift based on last value
+                    self.current_drift = self.final_array[-1]
+                    # Regenerate array with new drift
+                    self.final_array = self._extend_array(drift=self.current_drift)
         
         thread = threading.Thread(target=update_metrics, daemon=True)
         thread.start()
@@ -120,14 +145,21 @@ class MetricsRecorder:
         """
         return generate_latest(REGISTRY)
 
+# Global instance
 metrics_recorder = MetricsRecorder()
 
 if __name__ == "__main__":
-    print("MetricsRecorder initialized. Metrics updating every 10 seconds...")
+    print("MetricsRecorder initialized. Metrics updating every 1 second...")
+    print(f"Array length: {len(metrics_recorder.final_array)} points")
+    print(f"Full cycle takes: {len(metrics_recorder.final_array)} seconds")
+    
     # Keep alive for testing
     try:
         while True:
-            time.sleep(1)
+            time.sleep(5)
+            print(f"Current index: {metrics_recorder.current_index}, "
+                  f"Current drift: {metrics_recorder.current_drift:.4f}, "
+                  f"Current value: {metrics_recorder.final_array[metrics_recorder.current_index]:.4f}")
             
     except KeyboardInterrupt:
-        print("Stopped.")
+        print("\nStopped.")
