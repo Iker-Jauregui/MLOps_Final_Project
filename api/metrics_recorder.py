@@ -91,7 +91,7 @@ class MetricsRecorder:
         """Start background thread to update metrics periodically."""
         def update_metrics():
             while True:
-                time.sleep(1)  # Wait before updating (aligns with Prometheus scrape interval)
+                time.sleep(5)  # Wait before updating (aligns with Prometheus scrape interval)
                 
                 # Move to next value
                 # self.current_index = (self.current_index + 1) % len(self.final_array)
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     # Keep alive for testing
     try:
         while True:
-            time.sleep(1)
+            time.sleep(5)
             
     except KeyboardInterrupt:
         print("Stopped.")
