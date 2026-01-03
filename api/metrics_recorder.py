@@ -26,6 +26,8 @@ class MetricsRecorder:
             0.46301855, 1.20559233, 0.85118842, 0.83487927, 0.54649135,
             0.52210523, 1.33340921, 1.24418252, 1.75571656, 2.6214048
         ]
+        # 0, 3, 6, 9
+        # 0.46, 0.83, 1.33, 2.62
 
         gaussian_noise = 0.04
         results_list = []
@@ -91,7 +93,7 @@ class MetricsRecorder:
         """Start background thread to update metrics periodically."""
         def update_metrics():
             while True:
-                time.sleep(5)  # Wait before updating (aligns with Prometheus scrape interval)
+                time.sleep(1)  # Wait before updating (aligns with Prometheus scrape interval)
                 
                 # Move to next value
                 # self.current_index = (self.current_index + 1) % len(self.final_array)
@@ -125,7 +127,7 @@ if __name__ == "__main__":
     # Keep alive for testing
     try:
         while True:
-            time.sleep(5)
+            time.sleep(1)
             
     except KeyboardInterrupt:
         print("Stopped.")
