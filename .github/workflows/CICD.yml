@@ -86,8 +86,6 @@ jobs:
     if: needs.check-train-flag.outputs.should_train == 'true'
     permissions:
       contents: write
-    env:
-      MLFLOW_DIR: ${{ github.workspace }}/mlruns
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -123,12 +121,14 @@ jobs:
       
       - name: Train model with Optuna and MLflow
         env:
-          MLFLOW_TRACKING_URI: ${{ env.MLFLOW_DIR }}
+          DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
         run: uv run --group train scripts/train.py
       
       - name: Serialize best model
         env:
-          MLFLOW_TRACKING_URI: ${{ env.MLFLOW_DIR }}
+          DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
         run: uv run --group train scripts/serialize.py
       
       - name: Copy artifacts to production directory

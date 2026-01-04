@@ -25,7 +25,28 @@ import onnxruntime as ort
 
 
 # Set MLflow tracking URI
-mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "mlruns"))
+# Check if running in CI/CD with DagsHub
+if os.environ.get('GITHUB_ACTIONS') or os.environ.get('DAGSHUB_USERNAME'):
+    DAGSHUB_USERNAME = os.environ.get('DAGSHUB_USERNAME')
+    DAGSHUB_REPO = 'my-first-repo'
+    DAGSHUB_TOKEN = os.environ.get('DAGSHUB_TOKEN')
+    
+    if DAGSHUB_USERNAME and DAGSHUB_TOKEN:
+        mlflow_tracking_uri = f"https://dagshub.com/{DAGSHUB_USERNAME}/{DAGSHUB_REPO}.mlflow"
+        
+        # Set credentials
+        os.environ['MLFLOW_TRACKING_USERNAME'] = DAGSHUB_USERNAME
+        os.environ['MLFLOW_TRACKING_PASSWORD'] = DAGSHUB_TOKEN
+        
+        mlflow.set_tracking_uri(mlflow_tracking_uri)
+        print(f"Using DagsHub MLflow: {mlflow_tracking_uri}")
+    else:
+        print("Warning: DAGSHUB credentials not found, using local mlruns")
+        mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "mlruns"))
+else:
+    # Local development - use local mlruns
+    mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "mlruns"))
+    print(f"Using local MLflow: {mlflow.get_tracking_uri()}")
 
 # ## Load Best Model
 

@@ -164,7 +164,25 @@ print(f"Unseen zones replaced: {(df_test['zone'] == 'UNKNOWN').sum()}")
 
 
 # Set MLflow tracking URI
-mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "mlruns"))
+
+# Check if running in CI/CD
+if os.environ.get('GITHUB_ACTIONS'):
+    # Use DagsHub's MLflow tracking server
+    DAGSHUB_USERNAME = os.environ.get('DAGSHUB_USERNAME')
+    DAGSHUB_REPO = 'my-first-repo'
+    DAGSHUB_TOKEN = os.environ.get('DAGSHUB_TOKEN')
+    
+    mlflow_tracking_uri = f"https://dagshub.com/{DAGSHUB_USERNAME}/{DAGSHUB_REPO}.mlflow"
+    
+    # Set credentials
+    os.environ['MLFLOW_TRACKING_USERNAME'] = DAGSHUB_USERNAME
+    os.environ['MLFLOW_TRACKING_PASSWORD'] = DAGSHUB_TOKEN
+    
+    mlflow.set_tracking_uri(mlflow_tracking_uri)
+    print(f"Using DagsHub MLflow: {mlflow_tracking_uri}")
+else:
+    # Local development - use local mlruns
+    mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "mlruns"))
 
 # Set experiment name
 EXPERIMENT_NAME = "revenue_prediction_training"
