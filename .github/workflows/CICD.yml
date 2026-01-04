@@ -193,7 +193,8 @@ jobs:
     needs: [train-and-serialize, check-train-flag]
     if: always() && needs.check-train-flag.result == 'success'
     env:
-      DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/mlops-final-project:latest
+      DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_PROJECT_IMAGE }}
+      DOCKER_IMAGE_PROMETHEUS: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_PROM_IMAGE }}
     steps:
       - name: Checkout repository (with submodules)
         uses: actions/checkout@v4 
@@ -269,6 +270,17 @@ jobs:
       
       - name: Trigger Render Deploy
         run: curl -X POST "https://api.render.com/deploy/srv-d52jd0mmcj7s73bppu2g?key=${{ secrets.RENDER_DEPLOY_HOOK_KEY }}"
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: ${{ env.DOCKER_IMAGE_PROMETHEUS }}
+          file: ./Dockerfile.prometheus
+          context: .
+      
+      - name: Trigger Render Deploy
+        run: curl -X POST "https://api.render.com/deploy/srv-d5d5uf5actks73chk0v0?key=${{ secrets.RENDER_PROM_DEPLOY_HOOK_KEY }}"
 
   deploy-hf:
     runs-on: ubuntu-latest

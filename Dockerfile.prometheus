@@ -1,0 +1,10 @@
+FROM prom/prometheus:latest
+
+# Copy custom prometheus config
+COPY /third_party/prometheus/prometheus.yml /etc/prometheus/prometheus.yml
+
+# Expose Prometheus port
+EXPOSE 9090
+
+# Run Prometheus
+CMD ["--config.file=/etc/prometheus/prometheus.yml", "--web.enable-lifecycle"]
