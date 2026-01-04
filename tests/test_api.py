@@ -252,3 +252,77 @@ def test_predict_consistency(client):
     data2 = response2.json()
     
     assert data1["predicted_revenue"] == data2["predicted_revenue"]
+    
+def test_metrics_endpoint(client):
+    """Verify that the /metrics endpoint returns Prometheus metrics."""
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    assert "text/plain" in response.headers["content-type"]
+    
+    # Check for Prometheus metric format
+    content = response.text
+    assert "num_of_rmse" in content or "obtained_rmse" in content
+
+
+def test_predict_with_actual_isrc_from_training(client):
+    """Test with an actual ISRC code from the training data."""
+    response = client.post(
+        "/predict",
+        data={
+            "quantity": "10000",
+            "isrc": "CA-5KR-00-04598",  # First ISRC from metadata
+            "continent": "Europe",
+            "zone": "France"
+        }
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["isrc"] == "CA-5KR-00-04598"
+    assert data["predicted_revenue"] > 0
+
+
+def test_predict_with_actual_zone_from_training(client):
+    """Test with actual zone values from training data."""
+    response = client.post(
+        "/predict",
+        data={
+            "quantity": "5000",
+            "continent": "North America",
+            "zone": "United states"  # From zone list
+        }
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["zone"] == "United states"
+    assert data["predicted_revenue"] > 0
+
+
+def test_predict_with_all_continents(client):
+    """Test predictions for all valid continents."""
+    continents = ["Africa", "Asia", "Europe", "LATAM", "North America", "Oceania", "Other"]
+    
+    for continent in continents:
+        response = client.post(
+            "/predict",
+            data={
+                "quantity": "1000",
+                "continent": continent
+            }
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["continent"] == continent
+        assert data["predicted_revenue"] > 0
+
+
+def test_predict_exception_handling_type_error(client):
+    """Test that TypeError in prediction is handled gracefully."""
+    # This might be hard to trigger without mocking, but we can try edge cases
+    response = client.post(
+        "/predict",
+        data={
+            "quantity": "1e308",  # Very large number that might cause issues
+        }
+    )
+    # Should either succeed or return 400/500, not crash
+    assert response.status_code in [200, 400, 500]

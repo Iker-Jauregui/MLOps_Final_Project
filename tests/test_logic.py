@@ -156,3 +156,76 @@ def test_predict_none_handling():
     )
     assert isinstance(result, float)
     assert result > 0
+
+    
+def test_predict_with_training_isrc_codes():
+    """Test prediction with actual ISRC codes from training data."""
+    # Use first few ISRCs from the metadata
+    isrc_codes = ["CA-5KR-00-04598", "CA-5KR-00-04599", "DG-A05-22-56057"]
+    
+    for isrc in isrc_codes:
+        result = predict(
+            quantity=5000,
+            isrc=isrc,
+            continent="Europe"
+        )
+        assert isinstance(result, float)
+        assert result > 0
+
+
+def test_predict_with_all_continents():
+    """Test that all continents are properly encoded."""
+    continents = ["Africa", "Asia", "Europe", "LATAM", "North America", "Oceania", "Other"]
+    
+    predictions = []
+    for continent in continents:
+        result = predict(quantity=10000, continent=continent)
+        predictions.append(result)
+        assert isinstance(result, float)
+        assert result > 0
+    
+    # Predictions should vary based on continent
+    assert len(set(predictions)) > 1  # Not all the same
+
+
+def test_predict_with_training_zones():
+    """Test prediction with actual zone values from training data."""
+    zones = ["France", "Germany", "United states", "Canada", "Japan"]
+    
+    for zone in zones:
+        result = predict(
+            quantity=10000,
+            continent="Europe",
+            zone=zone
+        )
+        assert isinstance(result, float)
+        assert result > 0
+
+
+def test_encode_categorical_coverage():
+    """Test the encoding function directly."""
+    from logic.regressor import _encode_categorical
+    
+    # Test with valid values
+    assert _encode_categorical("Europe", "continent") > 0
+    assert _encode_categorical("CA-5KR-00-04598", "ISRC") > 0
+    
+    # Test with None
+    assert _encode_categorical(None, "continent") == 0
+    
+    # Test with empty string
+    assert _encode_categorical("", "zone") == 0
+    
+    # Test with unknown value
+    assert _encode_categorical("MadeUpValue", "continent") == 0
+
+
+def test_predict_array_with_different_sizes():
+    """Test array predictions with various sizes."""
+    sizes = [1, 5, 10, 100]
+    
+    for size in sizes:
+        quantities = np.full(size, 1000.0)
+        result = predict(quantities)
+        assert len(result) == size
+        assert all(r > 0 for r in result)
