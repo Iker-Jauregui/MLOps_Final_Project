@@ -131,7 +131,7 @@ with gr.Blocks(title="🎵 Track Revenue Predictor") as iface:
         with gr.Column():
             isrc_input = gr.Textbox(
                 label="ISRC (International Standard Recording Code)",
-                placeholder="e.g., USRC17607839 (optional)",
+                placeholder="e.g., FR-X87-24-72070 (optional)",
                 value="",
             )
             continent_input = gr.Dropdown(
@@ -141,7 +141,7 @@ with gr.Blocks(title="🎵 Track Revenue Predictor") as iface:
             )
             zone_input = gr.Textbox(
                 label="Zone",
-                placeholder="e.g., Western Europe, East Asia (optional)",
+                placeholder="e.g., Spain (optional)",
                 value="",
             )
             quantity_input = gr.Number(
@@ -159,12 +159,12 @@ with gr.Blocks(title="🎵 Track Revenue Predictor") as iface:
     gr.Markdown("### 📝 Example Inputs")
     gr.Examples(
         examples=[
-            ["USRC17607839", "Europe", "Western Europe", 1000],
+            ["FR-X87-24-72070", "Europe", "France", 1000],
             ["", "North America", "", 5000],
-            ["GBUM71507547", "Asia", "East Asia", 10000],
-            ["", "LATAM", "South America", 50000],
-            ["USUM71808193", "Oceania", "", 100000],
-            ["", "Africa", "North Africa", 500000],
+            ["GB-SXS-24-00075", "Asia", "Japan", 10000],
+            ["", "LATAM", "Mexico", 50000],
+            ["UK-XN2-20-67122", "Oceania", "", 100000],
+            ["", "Africa", "Egypt", 500000],
         ],
         inputs=[isrc_input, continent_input, zone_input, quantity_input],
     )
