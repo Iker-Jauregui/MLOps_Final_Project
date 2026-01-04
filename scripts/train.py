@@ -447,11 +447,11 @@ def objective(trial):
 mlflow.end_run()
 
 # Create parent MLflow run
-with mlflow.start_run(run_name="optuna_optimization"):
+with mlflow.start_run(run_name="optuna_optimization") as parent_run:
 
     # Log study configuration
     mlflow.log_param("optimization_metric", "val_rmse")
-    mlflow.log_param("n_trials", 20)
+    mlflow.log_param("n_trials", 2)
     mlflow.log_param("model_type", "RandomForest")
 
     # Create Optuna study
@@ -465,7 +465,7 @@ with mlflow.start_run(run_name="optuna_optimization"):
     print("Starting Optuna optimization...")
     study.optimize(
         objective,
-        n_trials=20,
+        n_trials=2,
         show_progress_bar=True
     )
 
@@ -482,42 +482,35 @@ with mlflow.start_run(run_name="optuna_optimization"):
     print(f"Best hyperparameters:")
     for key, value in best_trial.params.items():
         print(f"  {key}: {value}")
-
-
-# ## Visualize Optimization Results
-
-
-# In[25]:
-
-
-print("\nGenerating optimization visualizations...")
-
-try:
-    # Create plots directory
-    os.makedirs("plots", exist_ok=True)
     
-    # Plot optimization history (save as HTML)
-    fig1 = viz.plot_optimization_history(study)
-    fig1.write_html("plots/optimization_history.html")
-    print("Saved: plots/optimization_history.html")
+    # Generate and log optimization visualizations
+    print("\nGenerating optimization visualizations...")
     
-    # Plot parameter importances
-    fig2 = viz.plot_param_importances(study)
-    fig2.write_html("plots/param_importances.html")
-    print("Saved: plots/param_importances.html")
-    
-    # Plot parallel coordinate
-    fig3 = viz.plot_parallel_coordinate(study)
-    fig3.write_html("plots/parallel_coordinate.html")
-    print("Saved: plots/parallel_coordinate.html")
-    
-    # Log to MLflow
-    with mlflow.start_run(run_id=mlflow.active_run().info.run_id):
+    try:
+        # Create plots directory
+        os.makedirs("plots", exist_ok=True)
+        
+        # Plot optimization history (save as HTML)
+        fig1 = viz.plot_optimization_history(study)
+        fig1.write_html("plots/optimization_history.html")
+        print("Saved: plots/optimization_history.html")
+        
+        # Plot parameter importances
+        fig2 = viz.plot_param_importances(study)
+        fig2.write_html("plots/param_importances.html")
+        print("Saved: plots/param_importances.html")
+        
+        # Plot parallel coordinate
+        fig3 = viz.plot_parallel_coordinate(study)
+        fig3.write_html("plots/parallel_coordinate.html")
+        print("Saved: plots/parallel_coordinate.html")
+        
+        # Log to MLflow (we're already inside the run context)
         mlflow.log_artifact("plots/optimization_history.html", "optimization_plots")
         mlflow.log_artifact("plots/param_importances.html", "optimization_plots")
         mlflow.log_artifact("plots/parallel_coordinate.html", "optimization_plots")
-    
-    print("Logged optimization plots to MLflow")
-    
-except Exception as e:
-    print(f"Warning: Could not generate visualizations: {e}")
+        
+        print("Logged optimization plots to MLflow")
+        
+    except Exception as e:
+        print(f"Warning: Could not generate visualizations: {e}")
