@@ -57,13 +57,13 @@ experiment_id = experiment.experiment_id
 # Search for best run
 all_runs = client.search_runs(
     experiment_ids=[experiment_id],
-    filter_string="metrics.test_rmse > 0",
-    order_by=["metrics.test_rmse ASC"],
+    filter_string="metrics.val_rmse_cv > 0",
+    order_by=["metrics.val_rmse_cv ASC"],
     max_results=1
 )
 
 if len(all_runs) == 0:
-    raise ValueError("No runs found with test_rmse metric!")
+    raise ValueError("No runs found with val_rmse_cv metric!")
 
 best_run = all_runs[0]
 best_run_id = best_run.info.run_id
@@ -72,8 +72,8 @@ print(f"\n{'='*60}")
 print("Best Run Found!")
 print(f"{'='*60}")
 print(f"Run ID: {best_run_id}")
-print(f"Test RMSE: {best_run.data.metrics.get('test_rmse', 'N/A'):.4f}")
 print(f"Validation RMSE: {best_run.data.metrics.get('val_rmse_cv', 'N/A'):.4f}")
+print(f"Test RMSE: {best_run.data.metrics.get('test_rmse', 'N/A'):.4f}")
 print(f"\nBest Hyperparameters:")
 for param, value in best_run.data.params.items():
     if param in ['n_estimators', 'max_depth', 'max_features', 'random_state']:
